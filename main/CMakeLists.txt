@@ -1,6 +1,6 @@
-idf_component_register(SRCS "main.c"
-                    "images.c"
-                    "styles.c"
-                    "ui.c"
-                    "screens.c"
-                    INCLUDE_DIRS ".")
+file(GLOB SRCS *.c *.cpp)
+
+idf_component_register(
+    SRCS ${SRCS}
+    INCLUDE_DIRS .
+)
