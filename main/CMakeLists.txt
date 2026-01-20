@@ -4,6 +4,7 @@ idf_component_register(
         app.cpp
         WiFiManager.cpp
         fetchproducts.cpp
+        product_cache.cpp
         ui.c
         screens.c
         styles.c

@@ -6,6 +6,7 @@
 #include "esp_event.h"
 #include "esp_timer.h"
 #include "product_types.h"
+#include "product_cache.h"
 #include "WiFiManager.h"
 
 class BarcodeReader
@@ -22,13 +23,14 @@ private:
 class ProductFetcher
 {
 public:
-    ProductFetcher(QueueHandle_t barcode_q, QueueHandle_t product_q);
+    ProductFetcher(QueueHandle_t barcode_q, QueueHandle_t product_q, ProductCache *cache);
     void start();
     static void task(void *arg);
 
 private:
     QueueHandle_t barcode_queue;
     QueueHandle_t product_queue;
+    ProductCache *product_cache;
 };
 
 class LVGLManager
@@ -50,6 +52,7 @@ public:
 private:
     WiFiManager wifi_manager;
     LVGLManager lvgl_manager;
+    ProductCache product_cache;
     BarcodeReader *barcode_reader;
     ProductFetcher *product_fetcher;
     QueueHandle_t barcode_queue;

@@ -70,8 +70,14 @@ std::string mapUkSupermarketCategory(cJSON *tagsArray)
     return "Other";
 }
 
-bool fetchProductInfo(const std::string &barcode, ProductCacheItem &out)
+bool fetchProductInfo(const std::string &barcode, ProductCacheItem &out, ProductCache *cache)
 {
+    // Check cache first
+    if (cache && cache->contains(barcode))
+    {
+        return cache->get(barcode, out);
+    }
+
     std::string url = "https://world.openfoodfacts.org/api/v0/product/" + barcode + ".json";
     ESP_LOGI(TAG, "Fetching product info: %s", url.c_str());
 
@@ -150,6 +156,12 @@ bool fetchProductInfo(const std::string &barcode, ProductCacheItem &out)
         cJSON *tags = cJSON_GetObjectItem(product, "categories_tags");
         out.category = mapUkSupermarketCategory(tags);
         out.barcode = barcode;
+
+        // Add to cache if cache is provided
+        if (cache)
+        {
+            cache->add(out);
+        }
     }
 
     cJSON_Delete(root);
