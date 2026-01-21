@@ -153,6 +153,7 @@
               },
               "timeline": [],
               "eventHandlers": [],
+              "identifier": "helloLbl",
               "leftUnit": "px",
               "topUnit": "px",
               "widthUnit": "content",
