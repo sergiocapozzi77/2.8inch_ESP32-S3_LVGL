@@ -4,6 +4,7 @@
 #include <vector>
 #include "esp_http_client.h"
 #include "cJSON.h"
+#include "secrets.h"
 
 struct Product
 {
@@ -16,7 +17,7 @@ struct Product
 class ProductService
 {
 public:
-    ProductService(const std::string &apiKey);
+    ProductService();
 
     std::vector<Product> getProducts(const std::vector<std::string> &queries);
     bool addOrUpdateProduct(Product &product);
@@ -25,7 +26,7 @@ public:
     bool deleteProduct(const std::string &rowId);
 
 private:
-    std::string apiKey;
+    const std::string apiKey = APPWRITE_API_KEY;
 
     std::string generateId(int length = 12);
     std::string urlEncode(const std::string &s);
