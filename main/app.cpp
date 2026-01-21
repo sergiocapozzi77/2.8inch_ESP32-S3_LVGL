@@ -80,8 +80,8 @@ void BarcodeReader::task(void *arg)
 // ============================================================
 // ProductFetcher Implementation
 // ============================================================
-ProductFetcher::ProductFetcher(QueueHandle_t barcode_q, QueueHandle_t product_q)
-    : barcode_queue(barcode_q), product_queue(product_q) {}
+ProductFetcher::ProductFetcher(QueueHandle_t barcode_q, QueueHandle_t product_q, ProductCache *cache)
+    : barcode_queue(barcode_q), product_queue(product_q), product_cache(cache) {}
 
 void ProductFetcher::start()
 {
@@ -100,7 +100,7 @@ void ProductFetcher::task(void *arg)
             ESP_LOGI(TAG, "Fetching product info for: %s", barcode);
 
             ProductCacheItem item;
-            if (fetchProductInfo(std::string(barcode), item))
+            if (fetchProductInfo(std::string(barcode), item, self->product_cache))
             {
                 ESP_LOGI(TAG, "Product: %s (%s)", item.name.c_str(), item.category.c_str());
                 xQueueSend(self->product_queue, item.name.c_str(), 0);
@@ -161,7 +161,7 @@ void Application::initTasks()
     barcode_reader->init();
     xTaskCreate(BarcodeReader::task, "barcode_reader", 4096, barcode_reader, 10, NULL);
 
-    product_fetcher = new ProductFetcher(barcode_queue, product_queue);
+    product_fetcher = new ProductFetcher(barcode_queue, product_queue, &product_cache);
     product_fetcher->start();
 
     ESP_LOGI(TAG, "Tasks created");
@@ -188,8 +188,11 @@ void Application::run()
 {
     ESP_LOGI(TAG, "Initializing application...");
 
-    // Initialize NVS (required for WiFi)
+    // Initialize NVS (required for WiFi and cache)
     ESP_ERROR_CHECK(nvs_flash_init());
+
+    // Initialize product cache
+    ESP_ERROR_CHECK(product_cache.init());
 
     // Initialize managers
     lvgl_manager.init();
