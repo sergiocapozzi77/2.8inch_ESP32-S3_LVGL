@@ -9,6 +9,8 @@
 #include "ui.h"
 #include "fetchproducts.h"
 #include "ProductService.h"
+#include "esp_sleep.h"
+#include "driver/gpio.h"
 
 static const char *TAG = "APP";
 
@@ -54,6 +56,8 @@ void BarcodeReader::init()
     ESP_ERROR_CHECK(uart_set_pin(UART_PORT_NUM, UART_TX_PIN, UART_RX_PIN, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE));
 
     ESP_LOGI(TAG, "UART initialized");
+
+    this->configureAutosleep();
 }
 
 void BarcodeReader::task(void *arg)
@@ -220,6 +224,32 @@ void Application::initTasks()
     barcode_reader->init();
     xTaskCreate(BarcodeReader::task, "barcode_reader", 4096, barcode_reader, 10, NULL);
 
+    // The trigger command from your datasheet
+    const uint8_t trigger_cmd[] = {0x7E, 0x00, 0x08, 0x01, 0x00, 0x02, 0x01, 0xAB, 0xCD};
+
+    ESP_LOGI(TAG, "Sending UART Trigger...");
+    uart_write_bytes(UART_PORT_NUM, (const char *)trigger_cmd, sizeof(trigger_cmd));
+    // 1. Clear the RX buffer to remove old data
+    uart_flush(UART_PORT_NUM);
+
+    // 2. Send the command
+    uint8_t response[7];
+    int rx_len = uart_read_bytes(UART_PORT_NUM, response, 7, pdMS_TO_TICKS(100));
+
+    if (rx_len > 0)
+    {
+        // Log the response in Hex
+        ESP_LOG_BUFFER_HEX(TAG, response, rx_len);
+
+        // Check if first byte is 0x02 (Head2 from datasheet)
+        if (response[0] == 0x02)
+        {
+            ESP_LOGI(TAG, "Command Accepted!");
+        }
+    }
+
+    ESP_LOGW(TAG, "No response or command failed.");
+
     product_fetcher = new ProductFetcher(barcode_queue, product_queue, &product_cache, &product_service);
     product_fetcher->start();
 
@@ -228,24 +258,87 @@ void Application::initTasks()
 
 void Application::mainLoop()
 {
-    char barcode[MAX_BARCODE_LEN];
+    const uint32_t sleep_timeout_ms = 60000;
+
+    // Command to wake the module (Write 0 to the same zone bit)
+    const uint8_t barcode_wake_cmd[] = {0x7E, 0x00, 0x08, 0x01, 0x00, 0xD9, 0x00, 0xAB, 0xCD};
 
     while (1)
     {
-        // Check for new barcode
-        // if (xQueueReceive(barcode_queue, barcode, 0) == pdTRUE)
-        // {
-        //     lv_label_set_text(objects.debug_lbl, barcode);
-        // }
+        // Reset timer if barcode received
+        if (uxQueueMessagesWaiting(barcode_queue) > 0)
+        {
+            lv_disp_trig_activity(NULL);
+        }
+
+        // Check for 1-minute inactivity
+        if (lv_disp_get_inactive_time(NULL) > sleep_timeout_ms)
+        {
+            ESP_LOGI(TAG, "Inactivity detected. Shutting down barcode and ESP32...");
+
+            // 1. Tell Barcode Module to go to Deep Sleep
+            // 1. Set to Manual/Command Mode (Address 0x0000, Data 0x00)
+            const uint8_t manual_cmd[] = {0x7E, 0x00, 0x08, 0x01, 0x00, 0x07, 0x80, 0xAB, 0xCD};
+            uart_write_bytes(UART_PORT_NUM, (const char *)manual_cmd, sizeof(manual_cmd));
+            vTaskDelay(pdMS_TO_TICKS(200));
+
+            // 2. Now send the Deep Sleep command
+            const uint8_t barcode_deep_sleep[] = {0x7E, 0x00, 0x08, 0x01, 0x00, 0x08, 0x01, 0xAB, 0xCD};
+            uart_write_bytes(UART_PORT_NUM, (const char *)barcode_deep_sleep, sizeof(barcode_deep_sleep));
+            vTaskDelay(pdMS_TO_TICKS(200)); // Give it time to process
+
+            // 2. Turn off ESP32-S3 Backlight (GPIO 45)
+            gpio_set_level(GPIO_NUM_45, 0);
+
+            // 3. Setup Wakeup on Touch (GPIO 17)
+            esp_sleep_enable_ext0_wakeup(GPIO_NUM_17, 0);
+
+            // 4. ESP32-S3 Deep Sleep
+            esp_deep_sleep_start();
+        }
 
         lvgl_manager.tick();
         vTaskDelay(pdMS_TO_TICKS(5));
     }
 }
 
+void BarcodeReader::configureAutosleep()
+{
+    // ESP_LOGI(TAG, "Configuring Barcode Module Autosleep (30s)...");
+
+    // // 1. Enable Auto Deep Sleep (Bit 7 = 1) + Set Time High Bit
+    // // Address 0x0007, Data 0x81 (1000 0001 in binary)
+    // const uint8_t cmd1[] = {0x7E, 0x00, 0x08, 0x01, 0x00, 0x07, 0x81, 0xAB, 0xCD};
+
+    // // 2. Set Free Time Low Byte (0x2C = 44, total 300 * 100ms = 30s)
+    // // Address 0x0008, Data 0x2C
+    // const uint8_t cmd2[] = {0x7E, 0x00, 0x08, 0x01, 0x00, 0x08, 0x2C, 0xAB, 0xCD};
+
+    // // 3. SAVE to Flash (Address 0x0009, Type 0x09 - See Section 9.4)
+    // const uint8_t cmd_save[] = {0x7E, 0x00, 0x09, 0x01, 0x00, 0x00, 0x00, 0xDE, 0xC8};
+
+    // uart_write_bytes(UART_PORT_NUM, (const char *)cmd1, sizeof(cmd1));
+    // vTaskDelay(pdMS_TO_TICKS(100));
+
+    // uart_write_bytes(UART_PORT_NUM, (const char *)cmd2, sizeof(cmd2));
+    // vTaskDelay(pdMS_TO_TICKS(100));
+
+    // uart_write_bytes(UART_PORT_NUM, (const char *)cmd_save, sizeof(cmd_save));
+    // vTaskDelay(pdMS_TO_TICKS(500)); // Give it time to write to Flash
+
+    ESP_LOGI(TAG, "Barcode configuration saved.");
+}
+
 void Application::run()
 {
     ESP_LOGI(TAG, "Initializing application...");
+
+    // Check wake up cause
+    esp_sleep_wakeup_cause_t wakeup_reason = esp_sleep_get_wakeup_cause();
+    if (wakeup_reason == ESP_SLEEP_WAKEUP_EXT0)
+    {
+        ESP_LOGI(TAG, "Woke up from touch screen!");
+    }
 
     // Initialize NVS (required for WiFi and cache)
     ESP_ERROR_CHECK(nvs_flash_init());
