@@ -11,6 +11,7 @@ public:
     BarcodeReader(QueueHandle_t queue);
     void init();
     static void task(void *arg);
+    void off();
 
 private:
     QueueHandle_t barcode_queue;

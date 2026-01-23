@@ -7,16 +7,12 @@
 #include "esp_log.h"
 #include "nvs_flash.h"
 #include "ui.h"
-#include "fetchproducts.h"
 #include "ProductService.h"
 #include "esp_sleep.h"
 #include "driver/gpio.h"
 #include "BarcodeReader.h"
 
 static const char *TAG = "APP";
-
-// Barcode power control (PNP transistor base)
-#define BARCODE_PWR_GPIO GPIO_NUM_2 // example, change if needed
 
 // WiFi Configuration
 #define WIFI_SSID "CommunityFibre10Gb_1206C"
@@ -32,121 +28,6 @@ struct ProductPersistItem
     char category[MAX_CATEGORY_LEN];
     int quantity;
 };
-
-// ============================================================
-// ProductFetcher Implementation
-// ============================================================
-ProductFetcher::ProductFetcher(QueueHandle_t barcode_q, QueueHandle_t product_q, ProductCache *cache, ProductService *service)
-    : barcode_queue(barcode_q), product_queue(product_q), product_cache(cache), product_service(service)
-{
-    persist_queue = xQueueCreate(8, sizeof(ProductPersistItem));
-}
-
-void ProductFetcher::start()
-{
-    xTaskCreate(ProductFetcher::task, "product_fetch", 8192, this, 5, NULL);
-    xTaskCreate(ProductFetcher::persistTask, "product_persist", 8192, this, 4, NULL);
-}
-
-void ProductFetcher::task(void *arg)
-{
-    ProductFetcher *self = (ProductFetcher *)arg;
-    char barcode[MAX_BARCODE_LEN];
-
-    while (1)
-    {
-        if (xQueueReceive(self->barcode_queue, barcode, portMAX_DELAY))
-        {
-            ESP_LOGI(TAG, "Fetching product info for: %s", barcode);
-
-            ProductCacheItem item;
-            if (fetchProductInfo(std::string(barcode), item, self->product_cache))
-            {
-                ESP_LOGI(TAG, "Product: %s (%s)", item.name.c_str(), item.category.c_str());
-                xQueueSend(self->product_queue, item.name.c_str(), 0);
-
-                // Send to persist queue for database storage
-                ProductPersistItem persist_item;
-                strncpy(persist_item.name, item.name.c_str(), MAX_PRODUCT_NAME_LEN - 1);
-                persist_item.name[MAX_PRODUCT_NAME_LEN - 1] = '\0';
-                strncpy(persist_item.category, item.category.c_str(), MAX_CATEGORY_LEN - 1);
-                persist_item.category[MAX_CATEGORY_LEN - 1] = '\0';
-                persist_item.quantity = 1; // Default quantity
-
-                if (xQueueSend(self->persist_queue, &persist_item, pdMS_TO_TICKS(100)) != pdTRUE)
-                {
-                    ESP_LOGW(TAG, "Failed to queue product for persistence");
-                }
-            }
-            else
-            {
-                ESP_LOGW(TAG, "Failed to fetch product info");
-            }
-        }
-    }
-}
-
-void ProductFetcher::persistTask(void *arg)
-{
-    ProductFetcher *self = (ProductFetcher *)arg;
-    ProductPersistItem item;
-
-    while (1)
-    {
-        if (xQueueReceive(self->persist_queue, &item, portMAX_DELAY))
-        {
-            ESP_LOGI(TAG, "Persisting product to database: %s", item.name);
-
-            // Create Product struct for the service
-            Product product;
-            product.name = std::string(item.name);
-            product.category = std::string(item.category);
-            product.quantity = item.quantity;
-
-            // Call addOrUpdateProduct (long-running operation)
-            if (self->product_service->addOrUpdateProduct(product))
-            {
-                ESP_LOGI(TAG, "Successfully added/updated product in database: %s", product.name.c_str());
-            }
-            else
-            {
-                ESP_LOGW(TAG, "Failed to add/update product in database: %s", product.name.c_str());
-            }
-        }
-    }
-}
-
-// ============================================================
-// LVGLManager Implementation
-// ============================================================
-void LVGLManager::lvglTickCallback(void *arg)
-{
-    lv_tick_inc(1);
-}
-
-void LVGLManager::init()
-{
-    lv_init();
-    lv_port_disp_init();
-    lv_port_indev_init();
-
-    const esp_timer_create_args_t timer_args = {
-        .callback = &LVGLManager::lvglTickCallback,
-        .arg = NULL,
-        .name = "lvgl_tick"};
-
-    ESP_ERROR_CHECK(esp_timer_create(&timer_args, &lvgl_tick_timer));
-    ESP_ERROR_CHECK(esp_timer_start_periodic(lvgl_tick_timer, 1000)); // 1 ms
-
-    ui_init();
-    ESP_LOGI(TAG, "LVGL initialized");
-}
-
-void LVGLManager::tick()
-{
-    ui_tick();
-    lv_timer_handler();
-}
 
 // ============================================================
 // Application Implementation
@@ -211,7 +92,7 @@ void Application::mainLoop()
             gpio_set_level(GPIO_NUM_45, 0);
 
             // 4. Barcode OFF
-            gpio_set_level(BARCODE_PWR_GPIO, 0);
+            barcode_reader->off();
 
             // 5. Wake source
             esp_sleep_enable_ext0_wakeup(GPIO_NUM_17, 0);
@@ -245,16 +126,6 @@ void Application::run()
     // Initialize managers
     lvgl_manager.init();
     wifi_manager.init(WIFI_SSID, WIFI_PASSWORD);
-
-    gpio_config_t io_conf = {};
-    io_conf.pin_bit_mask = 1ULL << BARCODE_PWR_GPIO;
-    io_conf.mode = GPIO_MODE_OUTPUT;
-    io_conf.pull_up_en = GPIO_PULLUP_DISABLE;
-    io_conf.pull_down_en = GPIO_PULLDOWN_DISABLE;
-    gpio_config(&io_conf);
-
-    // Barcode ON at boot (PNP = LOW)
-    gpio_set_level(BARCODE_PWR_GPIO, 1);
 
     // Initialize queues and tasks
     initQueues();

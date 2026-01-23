@@ -5,8 +5,9 @@ idf_component_register(
         WiFiManager.cpp
         ProductService.cpp
         BarcodeReader.cpp
+        LVGLManager.cpp
+        ProductFetcher.cpp
         product_cache.cpp
-        fetchproducts.cpp
         product_cache.cpp
         ui/actions.c
         ui/screens.c

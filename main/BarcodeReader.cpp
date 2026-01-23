@@ -2,6 +2,7 @@
 #include "driver/uart.h"
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
+#include "driver/gpio.h"
 
 static const char *TAG = "BarcodeReader";
 // UART Configuration
@@ -10,6 +11,8 @@ static const char *TAG = "BarcodeReader";
 #define UART_TX_PIN 44
 #define UART_RX_PIN 43
 #define UART_BUF_SIZE 256
+// Barcode power control (PNP transistor base)
+#define BARCODE_PWR_GPIO GPIO_NUM_2 // example, change if needed
 
 // ============================================================
 // BarcodeReader Implementation
@@ -29,8 +32,24 @@ void BarcodeReader::init()
     ESP_ERROR_CHECK(uart_param_config(UART_PORT_NUM, &uart_config));
     ESP_ERROR_CHECK(uart_set_pin(UART_PORT_NUM, UART_TX_PIN, UART_RX_PIN, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE));
 
+    gpio_config_t io_conf = {};
+    io_conf.pin_bit_mask = 1ULL << BARCODE_PWR_GPIO;
+    io_conf.mode = GPIO_MODE_OUTPUT;
+    io_conf.pull_up_en = GPIO_PULLUP_DISABLE;
+    io_conf.pull_down_en = GPIO_PULLDOWN_DISABLE;
+    gpio_config(&io_conf);
+
+    // Barcode ON at boot (PNP = LOW)
+    gpio_set_level(BARCODE_PWR_GPIO, 1);
+
     ESP_LOGI(TAG, "UART initialized");
     xTaskCreate(BarcodeReader::task, "barcode_reader", 4096, this, 10, NULL);
+}
+
+void BarcodeReader::off()
+{
+    gpio_set_level(BARCODE_PWR_GPIO, 0);
+    ESP_LOGI(TAG, "Barcode reader powered off");
 }
 
 void BarcodeReader::task(void *arg)
