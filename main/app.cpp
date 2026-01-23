@@ -1,5 +1,5 @@
 #include "app.h"
-
+#include "esp_lcd_panel_ops.h"
 #include "driver/uart.h"
 #include "lvgl.h"
 #include "lv_port_disp.h"
@@ -21,6 +21,9 @@ static const char *TAG = "APP";
 #define UART_RX_PIN 43
 #define UART_BUF_SIZE 256
 #define MAX_BARCODE_LEN 64
+
+// Barcode power control (PNP transistor base)
+#define BARCODE_PWR_GPIO GPIO_NUM_2 // example, change if needed
 
 // WiFi Configuration
 #define WIFI_SSID "CommunityFibre10Gb_1206C"
@@ -56,8 +59,6 @@ void BarcodeReader::init()
     ESP_ERROR_CHECK(uart_set_pin(UART_PORT_NUM, UART_TX_PIN, UART_RX_PIN, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE));
 
     ESP_LOGI(TAG, "UART initialized");
-
-    this->configureAutosleep();
 }
 
 void BarcodeReader::task(void *arg)
@@ -260,73 +261,56 @@ void Application::mainLoop()
 {
     const uint32_t sleep_timeout_ms = 60000;
 
-    // Command to wake the module (Write 0 to the same zone bit)
-    const uint8_t barcode_wake_cmd[] = {0x7E, 0x00, 0x08, 0x01, 0x00, 0xD9, 0x00, 0xAB, 0xCD};
-
     while (1)
     {
-        // Reset timer if barcode received
+        // Reset inactivity timer if barcode received
         if (uxQueueMessagesWaiting(barcode_queue) > 0)
         {
             lv_disp_trig_activity(NULL);
         }
 
-        // Check for 1-minute inactivity
+        // Check inactivity timeout
         if (lv_disp_get_inactive_time(NULL) > sleep_timeout_ms)
         {
-            ESP_LOGI(TAG, "Inactivity detected. Shutting down barcode and ESP32...");
+            ESP_LOGI(TAG, "Inactivity detected. Entering deep sleep...");
 
-            // 1. Tell Barcode Module to go to Deep Sleep
-            // 1. Set to Manual/Command Mode (Address 0x0000, Data 0x00)
-            const uint8_t manual_cmd[] = {0x7E, 0x00, 0x08, 0x01, 0x00, 0x07, 0x80, 0xAB, 0xCD};
-            uart_write_bytes(UART_PORT_NUM, (const char *)manual_cmd, sizeof(manual_cmd));
-            vTaskDelay(pdMS_TO_TICKS(200));
+            // 1. Blank screen
+            lv_obj_t *scr = lv_scr_act();
+            lv_obj_set_style_bg_color(scr, lv_color_black(), 0);
+            lv_obj_set_style_bg_opa(scr, LV_OPA_COVER, 0);
+            lv_refr_now(NULL);
 
-            // 2. Now send the Deep Sleep command
-            const uint8_t barcode_deep_sleep[] = {0x7E, 0x00, 0x08, 0x01, 0x00, 0x08, 0x01, 0xAB, 0xCD};
-            uart_write_bytes(UART_PORT_NUM, (const char *)barcode_deep_sleep, sizeof(barcode_deep_sleep));
-            vTaskDelay(pdMS_TO_TICKS(200)); // Give it time to process
+            // 2. Optional panel sleep (if you control it)
+            // 2. Put the LCD Controller into Deep Sleep
+            // This sends the SPI command 0x10 (Sleep In) to the ILI9341V
+            // extern esp_lcd_panel_handle_t panel_handle; // Ensure this is accessible
+            // if (panel_handle != NULL)
+            // {
+            //     esp_lcd_panel_disp_on_off(panel_handle, false); // Turns off display output
+            //     esp_lcd_panel_disp_sleep(panel_handle, true);   // Puts driver IC to sleep
+            //     ESP_LOGI(TAG, "LCD panel put to sleep");
+            // }
+            // else
+            // {
+            //     ESP_LOGW(TAG, "Panel handle is NULL, cannot put panel to sleep");
+            // }
 
-            // 2. Turn off ESP32-S3 Backlight (GPIO 45)
+            // 3. Backlight OFF
             gpio_set_level(GPIO_NUM_45, 0);
 
-            // 3. Setup Wakeup on Touch (GPIO 17)
+            // 4. Barcode OFF
+            gpio_set_level(BARCODE_PWR_GPIO, 0);
+
+            // 5. Wake source
             esp_sleep_enable_ext0_wakeup(GPIO_NUM_17, 0);
 
-            // 4. ESP32-S3 Deep Sleep
+            // 6. Deep sleep
             esp_deep_sleep_start();
         }
 
         lvgl_manager.tick();
         vTaskDelay(pdMS_TO_TICKS(5));
     }
-}
-
-void BarcodeReader::configureAutosleep()
-{
-    // ESP_LOGI(TAG, "Configuring Barcode Module Autosleep (30s)...");
-
-    // // 1. Enable Auto Deep Sleep (Bit 7 = 1) + Set Time High Bit
-    // // Address 0x0007, Data 0x81 (1000 0001 in binary)
-    // const uint8_t cmd1[] = {0x7E, 0x00, 0x08, 0x01, 0x00, 0x07, 0x81, 0xAB, 0xCD};
-
-    // // 2. Set Free Time Low Byte (0x2C = 44, total 300 * 100ms = 30s)
-    // // Address 0x0008, Data 0x2C
-    // const uint8_t cmd2[] = {0x7E, 0x00, 0x08, 0x01, 0x00, 0x08, 0x2C, 0xAB, 0xCD};
-
-    // // 3. SAVE to Flash (Address 0x0009, Type 0x09 - See Section 9.4)
-    // const uint8_t cmd_save[] = {0x7E, 0x00, 0x09, 0x01, 0x00, 0x00, 0x00, 0xDE, 0xC8};
-
-    // uart_write_bytes(UART_PORT_NUM, (const char *)cmd1, sizeof(cmd1));
-    // vTaskDelay(pdMS_TO_TICKS(100));
-
-    // uart_write_bytes(UART_PORT_NUM, (const char *)cmd2, sizeof(cmd2));
-    // vTaskDelay(pdMS_TO_TICKS(100));
-
-    // uart_write_bytes(UART_PORT_NUM, (const char *)cmd_save, sizeof(cmd_save));
-    // vTaskDelay(pdMS_TO_TICKS(500)); // Give it time to write to Flash
-
-    ESP_LOGI(TAG, "Barcode configuration saved.");
 }
 
 void Application::run()
@@ -349,6 +333,16 @@ void Application::run()
     // Initialize managers
     lvgl_manager.init();
     wifi_manager.init(WIFI_SSID, WIFI_PASSWORD);
+
+    gpio_config_t io_conf = {};
+    io_conf.pin_bit_mask = 1ULL << BARCODE_PWR_GPIO;
+    io_conf.mode = GPIO_MODE_OUTPUT;
+    io_conf.pull_up_en = GPIO_PULLUP_DISABLE;
+    io_conf.pull_down_en = GPIO_PULLDOWN_DISABLE;
+    gpio_config(&io_conf);
+
+    // Barcode ON at boot (PNP = LOW)
+    gpio_set_level(BARCODE_PWR_GPIO, 1);
 
     // Initialize queues and tasks
     initQueues();

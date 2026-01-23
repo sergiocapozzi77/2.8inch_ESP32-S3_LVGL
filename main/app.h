@@ -19,7 +19,6 @@ public:
 
 private:
     QueueHandle_t barcode_queue;
-    void configureAutosleep();
 };
 
 class ProductFetcher
