@@ -10,16 +10,21 @@ extern "C" {
 
 // enum declarations
 
-
+typedef enum {
+    AddOrDelType_Add = 0,
+    AddOrDelType_Del = 1
+} AddOrDelType;
 
 // Flow global variables
 
 enum FlowGlobalVariables {
-    FLOW_GLOBAL_VARIABLE_NONE
+    FLOW_GLOBAL_VARIABLE_ADD_OR_DEL = 0
 };
 
 // Native global variables
 
+extern AddOrDelType get_var_add_or_del();
+extern void set_var_add_or_del(AddOrDelType value);
 
 
 #ifdef __cplusplus

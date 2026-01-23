@@ -7,9 +7,14 @@ idf_component_register(
         product_cache.cpp
         fetchproducts.cpp
         product_cache.cpp
-        ui.c
-        screens.c
-        styles.c
-        images.c
-    INCLUDE_DIRS .
+        ui/actions.c
+        ui/screens.c
+        ui/styles.c
+        ui/images.c
+        ui/vars.c
+        ui/ui.c
+    INCLUDE_DIRS
+        .
+        ui
+
 )

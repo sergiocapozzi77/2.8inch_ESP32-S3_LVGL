@@ -233,10 +233,10 @@ void Application::mainLoop()
     while (1)
     {
         // Check for new barcode
-        if (xQueueReceive(barcode_queue, barcode, 0) == pdTRUE)
-        {
-            lv_label_set_text(objects.hello_lbl, barcode);
-        }
+        // if (xQueueReceive(barcode_queue, barcode, 0) == pdTRUE)
+        // {
+        //     lv_label_set_text(objects.debug_lbl, barcode);
+        // }
 
         lvgl_manager.tick();
         vTaskDelay(pdMS_TO_TICKS(5));

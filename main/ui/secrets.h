@@ -1,0 +1,1 @@
+#define APPWRITE_API_KEY "your_appwrite_api_key_here"
