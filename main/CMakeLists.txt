@@ -4,6 +4,7 @@ idf_component_register(
         app.cpp
         WiFiManager.cpp
         ProductService.cpp
+        BarcodeReader.cpp
         product_cache.cpp
         fetchproducts.cpp
         product_cache.cpp

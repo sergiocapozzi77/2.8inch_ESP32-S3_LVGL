@@ -11,16 +11,9 @@
 #include "ProductService.h"
 #include "esp_sleep.h"
 #include "driver/gpio.h"
+#include "BarcodeReader.h"
 
 static const char *TAG = "APP";
-
-// UART Configuration
-#define UART_PORT_NUM UART_NUM_0
-#define UART_BAUD_RATE 9600
-#define UART_TX_PIN 44
-#define UART_RX_PIN 43
-#define UART_BUF_SIZE 256
-#define MAX_BARCODE_LEN 64
 
 // Barcode power control (PNP transistor base)
 #define BARCODE_PWR_GPIO GPIO_NUM_2 // example, change if needed
@@ -39,60 +32,6 @@ struct ProductPersistItem
     char category[MAX_CATEGORY_LEN];
     int quantity;
 };
-
-// ============================================================
-// BarcodeReader Implementation
-// ============================================================
-BarcodeReader::BarcodeReader(QueueHandle_t queue) : barcode_queue(queue) {}
-
-void BarcodeReader::init()
-{
-    uart_config_t uart_config = {
-        .baud_rate = UART_BAUD_RATE,
-        .data_bits = UART_DATA_8_BITS,
-        .parity = UART_PARITY_DISABLE,
-        .stop_bits = UART_STOP_BITS_1,
-        .flow_ctrl = UART_HW_FLOWCTRL_DISABLE};
-
-    ESP_ERROR_CHECK(uart_driver_install(UART_PORT_NUM, UART_BUF_SIZE * 2, 0, 0, NULL, 0));
-    ESP_ERROR_CHECK(uart_param_config(UART_PORT_NUM, &uart_config));
-    ESP_ERROR_CHECK(uart_set_pin(UART_PORT_NUM, UART_TX_PIN, UART_RX_PIN, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE));
-
-    ESP_LOGI(TAG, "UART initialized");
-}
-
-void BarcodeReader::task(void *arg)
-{
-    BarcodeReader *self = (BarcodeReader *)arg;
-    char line_buf[MAX_BARCODE_LEN];
-    int line_pos = 0;
-    uint8_t byte;
-
-    while (1)
-    {
-        int len = uart_read_bytes(UART_PORT_NUM, &byte, 1, pdMS_TO_TICKS(20));
-
-        if (len > 0)
-        {
-            if (byte == '\r' || byte == '\n')
-            {
-                if (line_pos > 0)
-                {
-                    line_buf[line_pos] = 0;
-                    ESP_LOGI(TAG, "Scanned barcode: %s", line_buf);
-                    xQueueSend(self->barcode_queue, line_buf, 0);
-                    line_pos = 0;
-                }
-            }
-            else if (line_pos < MAX_BARCODE_LEN - 1)
-            {
-                line_buf[line_pos++] = byte;
-            }
-        }
-
-        vTaskDelay(pdMS_TO_TICKS(5));
-    }
-}
 
 // ============================================================
 // ProductFetcher Implementation
@@ -223,33 +162,6 @@ void Application::initTasks()
 {
     barcode_reader = new BarcodeReader(barcode_queue);
     barcode_reader->init();
-    xTaskCreate(BarcodeReader::task, "barcode_reader", 4096, barcode_reader, 10, NULL);
-
-    // The trigger command from your datasheet
-    const uint8_t trigger_cmd[] = {0x7E, 0x00, 0x08, 0x01, 0x00, 0x02, 0x01, 0xAB, 0xCD};
-
-    ESP_LOGI(TAG, "Sending UART Trigger...");
-    uart_write_bytes(UART_PORT_NUM, (const char *)trigger_cmd, sizeof(trigger_cmd));
-    // 1. Clear the RX buffer to remove old data
-    uart_flush(UART_PORT_NUM);
-
-    // 2. Send the command
-    uint8_t response[7];
-    int rx_len = uart_read_bytes(UART_PORT_NUM, response, 7, pdMS_TO_TICKS(100));
-
-    if (rx_len > 0)
-    {
-        // Log the response in Hex
-        ESP_LOG_BUFFER_HEX(TAG, response, rx_len);
-
-        // Check if first byte is 0x02 (Head2 from datasheet)
-        if (response[0] == 0x02)
-        {
-            ESP_LOGI(TAG, "Command Accepted!");
-        }
-    }
-
-    ESP_LOGW(TAG, "No response or command failed.");
 
     product_fetcher = new ProductFetcher(barcode_queue, product_queue, &product_cache, &product_service);
     product_fetcher->start();

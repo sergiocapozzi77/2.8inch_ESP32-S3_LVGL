@@ -9,17 +9,7 @@
 #include "product_cache.h"
 #include "WiFiManager.h"
 #include "ProductService.h"
-
-class BarcodeReader
-{
-public:
-    BarcodeReader(QueueHandle_t queue);
-    void init();
-    static void task(void *arg);
-
-private:
-    QueueHandle_t barcode_queue;
-};
+#include "BarcodeReader.h"
 
 class ProductFetcher
 {
