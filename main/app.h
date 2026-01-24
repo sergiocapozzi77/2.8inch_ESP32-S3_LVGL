@@ -1,6 +1,9 @@
 #pragma once
 
+#include "freertos/FreeRTOS.h" // MUST be first FreeRTOS header
+#include "freertos/task.h"
 #include "freertos/queue.h"
+
 #include "WiFiManager.h"
 #include "LVGLManager.h"
 #include "product_cache.h"

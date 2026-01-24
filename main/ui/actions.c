@@ -4,21 +4,33 @@
 #include "esp_log.h"
 #include "vars.h"
 
-void action_product_action(lv_event_t * e) {
-    lv_obj_t * obj = lv_event_get_target(e);
+void action_product_action(lv_event_t *e)
+{
+    lv_obj_t *obj = lv_event_get_target(e);
 
     /* Get the button index */
     uint16_t btn_id = lv_btnmatrix_get_selected_btn(obj);
 
-    if (btn_id == LV_BTNMATRIX_BTN_NONE) {
+    if (btn_id == LV_BTNMATRIX_BTN_NONE)
+    {
         // No valid button (shouldn't happen for a click)
         return;
     }
 
     /* Get the button text */
-    const char * txt = lv_btnmatrix_get_btn_text(obj, btn_id);
-    if(btn_id == 0) {
-        se
+    const char *txt = lv_btnmatrix_get_btn_text(obj, btn_id);
+    if (btn_id == 0)
+    {
+        set_var_add_or_del(AddOrDelType_Add);
+    }
+    else if (btn_id == 1)
+    {
+        set_var_add_or_del(AddOrDelType_Del);
+    }
+    else
+    {
+        // Unknown button
+        return;
     }
 
     ESP_LOGI("actions", "Button index: %d\n", btn_id);

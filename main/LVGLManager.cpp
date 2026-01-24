@@ -42,12 +42,24 @@ void LVGLManager::tick()
 
 void LVGLManager::updateBatteryUI()
 {
+    static bool first_update = true;
+    static int last_battery = -1;
+    static uint32_t last_update_ms = 0;
+
+    uint32_t now = lv_tick_get();
+    const uint32_t interval = 5000;
+
+    if (!first_update && (now - last_update_ms < interval))
+        return;
+
+    first_update = false;
+    last_update_ms = now;
+
     int battery = battery_manager.getPercentage();
 
-    static int last = -1;
-    if (battery != last)
+    if (battery != last_battery)
     {
-        lv_label_set_text_fmt(objects->battery_label, "%d%%", battery);
-        last = battery;
+        lv_label_set_text_fmt(objects.battery_lbl, "%d%%", battery);
+        last_battery = battery;
     }
 }
