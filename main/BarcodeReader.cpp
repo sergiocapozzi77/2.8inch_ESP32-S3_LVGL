@@ -3,6 +3,7 @@
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "driver/gpio.h"
+#include "lvgl.h"
 
 static const char *TAG = "BarcodeReader";
 // UART Configuration
@@ -71,6 +72,7 @@ void BarcodeReader::task(void *arg)
                 {
                     line_buf[line_pos] = 0;
                     ESP_LOGI(TAG, "Scanned barcode: %s", line_buf);
+                    lv_disp_trig_activity(NULL); // Reset inactivity timer
                     xQueueSend(self->barcode_queue, line_buf, 0);
                     line_pos = 0;
                 }

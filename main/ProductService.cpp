@@ -314,6 +314,8 @@ bool ProductService::manageUpdateProduct(Product &product)
         switch (mode)
         {
         case AddOrDelType_Add:
+            ESP_LOGI(TAG, "Adding quantity %d to existing product %s",
+                     product.quantity, p.name.c_str());
             p.quantity += product.quantity;
             break;
 
@@ -321,7 +323,13 @@ bool ProductService::manageUpdateProduct(Product &product)
             p.quantity -= product.quantity;
             if (p.quantity <= 0)
             {
+                ESP_LOGI(TAG, "Quantity <= 0, deleting product %s", p.name.c_str());
                 return deleteProduct(product.rowId);
+            }
+            else
+            {
+                ESP_LOGI(TAG, "Subtracting quantity %d from existing product %s",
+                         product.quantity, p.name.c_str());
             }
             break;
 
@@ -337,9 +345,11 @@ bool ProductService::manageUpdateProduct(Product &product)
     switch (mode)
     {
     case AddOrDelType_Add:
+        ESP_LOGI(TAG, "Product %s does not exist, adding it", product.name.c_str());
         return addProduct(product);
 
     case AddOrDelType_Del:
+        ESP_LOGI(TAG, "Product %s does not exist, nothing to delete", product.name.c_str());
         return true; // Nothing to delete
 
     default:
@@ -499,6 +509,7 @@ bool ProductService::updateProduct(Product &product)
 
 bool ProductService::deleteProduct(const std::string &rowId)
 {
+    ESP_LOGI(TAG, "deleteProduct() called for rowId: %s", rowId.c_str());
     std::string url = Endpoint + "/tablesdb/" + DatabaseId +
                       "/tables/" + CollectionId + "/rows/" + rowId;
 
