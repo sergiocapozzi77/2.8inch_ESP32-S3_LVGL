@@ -20,7 +20,7 @@ public:
     ProductService();
 
     std::vector<Product> getProducts(const std::vector<std::string> &queries);
-    bool addOrUpdateProduct(Product &product);
+    bool manageUpdateProduct(Product &product);
     bool addProduct(Product &product);
     bool updateProduct(Product &product);
     bool deleteProduct(const std::string &rowId);

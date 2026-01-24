@@ -7,6 +7,7 @@ idf_component_register(
         BarcodeReader.cpp
         LVGLManager.cpp
         ProductFetcher.cpp
+        BatteryManager.cpp
         product_cache.cpp
         product_cache.cpp
         ui/actions.c

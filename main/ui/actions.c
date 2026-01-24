@@ -2,6 +2,7 @@
 #include "lvgl.h"
 #include "ui.h"
 #include "esp_log.h"
+#include "vars.h"
 
 void action_product_action(lv_event_t * e) {
     lv_obj_t * obj = lv_event_get_target(e);
@@ -16,6 +17,9 @@ void action_product_action(lv_event_t * e) {
 
     /* Get the button text */
     const char * txt = lv_btnmatrix_get_btn_text(obj, btn_id);
+    if(btn_id == 0) {
+        se
+    }
 
     ESP_LOGI("actions", "Button index: %d\n", btn_id);
     ESP_LOGI("actions", "Button text: %s\n", txt ? txt : "(no text)");

@@ -6,6 +6,7 @@
 #include <sstream>
 #include <iomanip>
 #include <cctype>
+#include "vars.h"
 
 static const char *TAG = "ProductService";
 
@@ -294,22 +295,57 @@ std::vector<Product> ProductService::getProducts(const std::vector<std::string> 
     return result;
 }
 
-bool ProductService::addOrUpdateProduct(Product &product)
+bool ProductService::manageUpdateProduct(Product &product)
 {
+    const auto mode = get_var_add_or_del();
+
+    // Build query
     std::string q =
         "{\"method\":\"equal\",\"attribute\":\"name\",\"values\":[\"" +
         product.name + "\"]}";
 
     auto existing = getProducts({q});
 
+    // Case 1: Product already exists → update quantity or delete
     if (!existing.empty())
     {
         Product p = existing[0];
-        p.quantity += product.quantity;
+
+        switch (mode)
+        {
+        case AddOrDelType_Add:
+            p.quantity += product.quantity;
+            break;
+
+        case AddOrDelType_Del:
+            p.quantity -= product.quantity;
+            if (p.quantity <= 0)
+            {
+                return deleteProduct(product.rowId);
+            }
+            break;
+
+        default:
+            ESP_LOGE(TAG, "Unknown AddOrDelType: %d", (int)mode);
+            return false;
+        }
+
         return updateProduct(p);
     }
 
-    return addProduct(product);
+    // Case 2: Product does not exist → add or delete
+    switch (mode)
+    {
+    case AddOrDelType_Add:
+        return addProduct(product);
+
+    case AddOrDelType_Del:
+        return true; // Nothing to delete
+
+    default:
+        ESP_LOGE(TAG, "Unknown AddOrDelType: %d", (int)mode);
+        return false;
+    }
 }
 
 bool ProductService::addProduct(Product &product)

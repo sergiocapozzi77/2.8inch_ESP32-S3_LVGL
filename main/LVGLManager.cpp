@@ -15,6 +15,7 @@ void LVGLManager::lvglTickCallback(void *arg)
 
 void LVGLManager::init()
 {
+    battery_manager.init();
     lv_init();
     lv_port_disp_init();
     lv_port_indev_init();
@@ -35,5 +36,18 @@ void LVGLManager::init()
 void LVGLManager::tick()
 {
     ui_tick();
+    updateBatteryUI();
     lv_timer_handler();
+}
+
+void LVGLManager::updateBatteryUI()
+{
+    int battery = battery_manager.getPercentage();
+
+    static int last = -1;
+    if (battery != last)
+    {
+        lv_label_set_text_fmt(objects->battery_label, "%d%%", battery);
+        last = battery;
+    }
 }

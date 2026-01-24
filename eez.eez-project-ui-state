@@ -1,7 +1,11 @@
 {
   "navigation": {
     "selectedUserPageObject": "[eez.eez-project]:/userPages/0",
-    "subnavigationSelectedItems": {}
+    "selectedGlobalVariableObject": "[eez.eez-project]:/variables/globalVariables/0",
+    "selectedEnumObject": "[eez.eez-project]:/variables/enums/0",
+    "subnavigationSelectedItems": {
+      "variables-tab/sub-navigation/selected-item": "Global"
+    }
   },
   "layoutModel": {
     "rootEditor": {
@@ -185,7 +189,7 @@
             {
               "type": "tabset",
               "id": "EDITORS",
-              "weight": 65,
+              "weight": 51.91114245416079,
               "selected": 1,
               "enableDeleteWhenEmpty": false,
               "enableClose": false,
@@ -218,7 +222,7 @@
             {
               "type": "row",
               "id": "#8787db25-c1fd-4d9e-91d5-5dea91f1c174",
-              "weight": 20,
+              "weight": 33.08885754583921,
               "children": [
                 {
                   "type": "tabset",
@@ -982,7 +986,8 @@
     "[eez.eez-project]:/userPages/0[flow-state]": {
       "selection": {
         "0": {
-          "0": {
+          "0": {},
+          "1": {
             "$selected": true
           }
         }
@@ -992,7 +997,7 @@
           "x": -160,
           "y": -120
         },
-        "scale": 1
+        "scale": 1.5
       },
       "timeline": {
         "isEditorActive": false,
@@ -1015,9 +1020,13 @@
   "selectedStylePropertyName": "",
   "lvglPart": "MAIN",
   "lvglState": "DEFAULT",
-  "lvglExpandedPropertiesGroup": [],
+  "lvglExpandedPropertiesGroup": [
+    "POSITION AND SIZE",
+    "LAYOUT",
+    "TEXT"
+  ],
   "showInactiveFlowsInDebugger": true,
   "globalFlowZoom": true,
-  "flowZoom": 1,
+  "flowZoom": 1.5,
   "implementationLanguage": "C"
 }

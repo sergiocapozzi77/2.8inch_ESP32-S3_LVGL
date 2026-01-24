@@ -31,8 +31,8 @@ void create_screen_main() {
         {
             lv_obj_t *obj = lv_btnmatrix_create(parent_obj);
             objects.obj0 = obj;
-            lv_obj_set_pos(obj, 0, 0);
-            lv_obj_set_size(obj, 320, 240);
+            lv_obj_set_pos(obj, 0, 18);
+            lv_obj_set_size(obj, 320, 222);
             static const char *map[3] = {
                 "Add",
                 "Del",
@@ -49,12 +49,13 @@ void create_screen_main() {
             lv_obj_add_flag(obj, LV_OBJ_FLAG_CHECKABLE);
         }
         {
-            // debug_lbl
+            // battery_lbl
             lv_obj_t *obj = lv_label_create(parent_obj);
-            objects.debug_lbl = obj;
-            lv_obj_set_pos(obj, 120, 17);
+            objects.battery_lbl = obj;
+            lv_obj_set_pos(obj, 289, 2);
             lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
-            lv_label_set_text(obj, "Text");
+            lv_obj_set_style_text_align(obj, LV_TEXT_ALIGN_RIGHT, LV_PART_MAIN | LV_STATE_DEFAULT);
+            lv_label_set_text(obj, "");
         }
     }
     

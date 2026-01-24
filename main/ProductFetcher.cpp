@@ -4,6 +4,7 @@
 #include <string>
 #include <algorithm>
 #include <vector>
+#include "vars.h"
 
 static const char *TAG = "ProductFetcher";
 
@@ -80,7 +81,7 @@ void ProductFetcher::persistTask(void *arg)
             product.category = item.category;
             product.quantity = item.quantity;
 
-            if (self->product_service->addOrUpdateProduct(product))
+            if (self->product_service->manageUpdateProduct(product))
             {
                 ESP_LOGI(TAG, "Product saved: %s", product.name.c_str());
             }

@@ -5,6 +5,7 @@
 #include "esp_log.h"
 #include "product_cache.h"
 #include "ProductService.h"
+#include "vars.h"
 
 // Product persist queue item (fixed-size for FreeRTOS safety)
 #define MAX_PRODUCT_NAME_LEN 128

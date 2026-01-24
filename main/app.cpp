@@ -1,33 +1,23 @@
 #include "app.h"
-#include "esp_lcd_panel_ops.h"
-#include "driver/uart.h"
+
 #include "lvgl.h"
 #include "lv_port_disp.h"
 #include "lv_port_indev.h"
+
 #include "esp_log.h"
 #include "nvs_flash.h"
-#include "ui.h"
-#include "ProductService.h"
 #include "esp_sleep.h"
 #include "driver/gpio.h"
+
 #include "BarcodeReader.h"
+#include "ProductFetcher.h"
+#include "product_cache.h"
 
 static const char *TAG = "APP";
 
 // WiFi Configuration
 #define WIFI_SSID "CommunityFibre10Gb_1206C"
 #define WIFI_PASSWORD "4kF3zadv5@"
-
-// Product persist queue item (using fixed-size arrays instead of std::string for safe queue passing)
-#define MAX_PRODUCT_NAME_LEN 128
-#define MAX_CATEGORY_LEN 64
-
-struct ProductPersistItem
-{
-    char name[MAX_PRODUCT_NAME_LEN];
-    char category[MAX_CATEGORY_LEN];
-    int quantity;
-};
 
 // ============================================================
 // Application Implementation
