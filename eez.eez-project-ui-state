@@ -1,6 +1,7 @@
 {
   "navigation": {
     "selectedUserPageObject": "[eez.eez-project]:/userPages/0",
+    "selectedUserWidgetObject": "[eez.eez-project]:/userWidgets/0",
     "selectedGlobalVariableObject": "[eez.eez-project]:/variables/globalVariables/0",
     "selectedEnumObject": "[eez.eez-project]:/variables/enums/0",
     "subnavigationSelectedItems": {
@@ -166,8 +167,7 @@
                       "enableClose": false,
                       "icon": "svg:hierarchy"
                     }
-                  ],
-                  "active": true
+                  ]
                 },
                 {
                   "type": "tabset",
@@ -191,10 +191,21 @@
               "type": "tabset",
               "id": "EDITORS",
               "weight": 51.91114245416079,
-              "selected": 1,
+              "selected": 2,
               "enableDeleteWhenEmpty": false,
               "enableClose": false,
               "children": [
+                {
+                  "type": "tab",
+                  "id": "#233bd3e0-f80a-4817-a5be-5b567765b43f",
+                  "name": "SnackBar",
+                  "component": "editor",
+                  "config": {
+                    "objectPath": "[eez.eez-project]:/userWidgets/0",
+                    "permanent": false
+                  },
+                  "icon": "svg:user_widget"
+                },
                 {
                   "type": "tab",
                   "id": "#1bd32a73-0eeb-4c72-9eeb-d100d76489cd",
@@ -218,7 +229,8 @@
                   },
                   "icon": "svg:page"
                 }
-              ]
+              ],
+              "active": true
             },
             {
               "type": "row",
@@ -987,7 +999,8 @@
       "selection": {
         "0": {
           "0": {},
-          "1": {
+          "1": {},
+          "2": {
             "$selected": true
           }
         }
@@ -995,7 +1008,27 @@
       "transform": {
         "translate": {
           "x": -160,
-          "y": -120
+          "y": -213
+        },
+        "scale": 1.5
+      },
+      "timeline": {
+        "isEditorActive": false,
+        "position": 0,
+        "secondToPx": 200,
+        "scrollLeft": 0
+      }
+    },
+    "[eez.eez-project]:/userWidgets/0[flow-state]": {
+      "selection": {
+        "1": {
+          "$selected": true
+        }
+      },
+      "transform": {
+        "translate": {
+          "x": -160,
+          "y": -20
         },
         "scale": 1.5
       },
@@ -1013,6 +1046,7 @@
   "searchMatchWholeWord": false,
   "replaceEnabled": false,
   "replaceText": "",
+  "pageRuntimeFrontFace": true,
   "breakpoints": {},
   "watchExpressions": [],
   "showComponentDescriptions": true,
@@ -1023,7 +1057,10 @@
   "lvglExpandedPropertiesGroup": [
     "POSITION AND SIZE",
     "LAYOUT",
-    "TEXT"
+    "BORDER",
+    "OUTLINE",
+    "LINE",
+    "BACKGROUND"
   ],
   "showInactiveFlowsInDebugger": true,
   "globalFlowZoom": true,
