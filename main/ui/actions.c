@@ -36,3 +36,10 @@ void action_product_action(lv_event_t *e)
     ESP_LOGI("actions", "Button index: %d\n", btn_id);
     ESP_LOGI("actions", "Button text: %s\n", txt ? txt : "(no text)");
 }
+
+void action_screen_loading(lv_event_t *e)
+{
+    // This function can be used to perform actions when the loading screen is shown
+    ESP_LOGI("actions", "Loading screen shown");
+    lv_obj_add_flag(objects.snackbar, LV_OBJ_FLAG_HIDDEN);
+}

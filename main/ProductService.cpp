@@ -7,6 +7,7 @@
 #include <iomanip>
 #include <cctype>
 #include "vars.h"
+#include "LVGLManager.h"
 
 static const char *TAG = "ProductService";
 
@@ -443,6 +444,11 @@ bool ProductService::addProduct(Product &product)
              product.rowId.c_str());
 
     cJSON_Delete(doc);
+
+    LVGLManager::showProductSnackbar(
+        product.name,
+        ProductAction::Added);
+
     return true;
 }
 
@@ -504,6 +510,10 @@ bool ProductService::updateProduct(Product &product)
     }
 
     ESP_LOGI(TAG, "Product updated successfully for rowId: %s", product.rowId.c_str());
+
+    LVGLManager::showProductSnackbar(
+        product.name,
+        ProductAction::Updated);
     return true;
 }
 
@@ -514,6 +524,16 @@ bool ProductService::deleteProduct(const std::string &rowId)
                       "/tables/" + CollectionId + "/rows/" + rowId;
 
     int status = httpDelete(url);
+
+    bool ok = status == 200 || status == 204;
+
+    if (ok)
+    {
+        LVGLManager::showProductSnackbar(
+            "Product",
+            ProductAction::Deleted);
+    }
+
     return status == 200 || status == 204;
 }
 

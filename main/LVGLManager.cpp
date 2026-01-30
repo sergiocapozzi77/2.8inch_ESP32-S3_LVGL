@@ -63,3 +63,59 @@ void LVGLManager::updateBatteryUI()
         last_battery = battery;
     }
 }
+
+struct SnackbarData
+{
+    std::string product;
+    ProductAction action;
+};
+
+void LVGLManager::showProductSnackbar(const std::string &product,
+                                      ProductAction action)
+{
+    // Allocate data to pass safely across tasks
+    auto *data = new SnackbarData{product, action};
+
+    // Schedule execution in LVGL context
+    lv_async_call(snackbarAsync, data);
+}
+
+void LVGLManager::snackbarAsync(void *arg)
+{
+    auto *data = static_cast<SnackbarData *>(arg);
+
+    const char *action_txt = "";
+    switch (data->action)
+    {
+    case ProductAction::Added:
+        action_txt = "added";
+        break;
+    case ProductAction::Updated:
+        action_txt = "updated";
+        break;
+    case ProductAction::Deleted:
+        action_txt = "deleted";
+        break;
+    }
+
+    // Update labels
+    lv_label_set_text(objects.snackbar__product_lbl,
+                      data->product.c_str());
+    lv_label_set_text(objects.snackbar__action_lbl,
+                      action_txt);
+
+    // Make snackbar visible
+    lv_obj_clear_flag(objects.snackbar, LV_OBJ_FLAG_HIDDEN);
+
+    // Optional: auto-hide after 3s
+    lv_timer_t *t = lv_timer_create(
+        [](lv_timer_t *timer)
+        {
+            lv_obj_add_flag(objects.snackbar, LV_OBJ_FLAG_HIDDEN);
+            lv_timer_del(timer);
+        },
+        5000,
+        nullptr);
+
+    delete data;
+}
