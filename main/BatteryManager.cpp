@@ -30,15 +30,23 @@ float BatteryManager::getVoltage()
 
 int BatteryManager::getPercentage()
 {
-    float voltage = getVoltage();
+    float v = getVoltage();
 
-    // Li-Po discharge curve is not linear, but this is a good approximation:
-    // 4.2V = 100%, 3.5V = 0%
-    if (voltage >= 4.2f)
+    if (v >= 4.20f)
         return 100;
-    if (voltage <= 3.5f)
-        return 0;
-
-    int percentage = (int)((voltage - 3.5f) * 100.0f / (4.2f - 3.5f));
-    return std::max(0, std::min(100, percentage));
+    if (v >= 4.10f)
+        return 95;
+    if (v >= 4.00f)
+        return 85;
+    if (v >= 3.90f)
+        return 70;
+    if (v >= 3.80f)
+        return 55;
+    if (v >= 3.70f)
+        return 40;
+    if (v >= 3.60f)
+        return 25;
+    if (v >= 3.50f)
+        return 10;
+    return 0;
 }
