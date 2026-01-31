@@ -9,8 +9,8 @@ static const char *TAG = "BarcodeReader";
 // UART Configuration
 #define UART_PORT_NUM UART_NUM_0
 #define UART_BAUD_RATE 9600
-#define UART_TX_PIN 44
-#define UART_RX_PIN 43
+static constexpr gpio_num_t UART_TX_PIN = GPIO_NUM_44;
+static constexpr gpio_num_t UART_RX_PIN = GPIO_NUM_43;
 #define UART_BUF_SIZE 256
 // Barcode power control (PNP transistor base)
 #define BARCODE_PWR_GPIO GPIO_NUM_2 // example, change if needed
@@ -49,6 +49,12 @@ void BarcodeReader::init()
 
 void BarcodeReader::off()
 {
+
+    gpio_set_direction(UART_TX_PIN, GPIO_MODE_INPUT);
+    gpio_set_direction(UART_RX_PIN, GPIO_MODE_INPUT);
+    gpio_pullup_dis(UART_RX_PIN);
+    gpio_pulldown_dis(UART_RX_PIN);
+
     gpio_set_level(BARCODE_PWR_GPIO, 0);
     ESP_LOGI(TAG, "Barcode reader powered off");
 }

@@ -12,6 +12,8 @@
 #include "BarcodeReader.h"
 #include "ProductFetcher.h"
 #include "product_cache.h"
+#include "esp_wifi.h"
+#include "ili9341.h"
 
 static const char *TAG = "APP";
 
@@ -87,6 +89,13 @@ void Application::mainLoop()
             // 5. Wake source
             esp_sleep_enable_ext0_wakeup(GPIO_NUM_17, 0);
 
+            esp_wifi_stop();
+
+            ili9341_sleep_in();
+            vTaskDelay(pdMS_TO_TICKS(120));
+
+            lv_timer_enable(false);
+
             // 6. Deep sleep
             esp_deep_sleep_start();
         }
@@ -105,6 +114,10 @@ void Application::run()
     if (wakeup_reason == ESP_SLEEP_WAKEUP_EXT0)
     {
         ESP_LOGI(TAG, "Woke up from touch screen!");
+        ili9341_sleep_out();
+        vTaskDelay(pdMS_TO_TICKS(120));
+
+        vTaskDelay(pdMS_TO_TICKS(120));
     }
 
     // Initialize NVS (required for WiFi and cache)
