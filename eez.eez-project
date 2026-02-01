@@ -348,6 +348,52 @@
                 "objID": "f932ff7a-8bb7-4314-a22f-fdee72e70bff",
                 "values": {}
               }
+            },
+            {
+              "objID": "02d37e83-d1c2-4a2d-9c6f-96e4e8f8f274",
+              "type": "LVGLUserWidgetWidget",
+              "left": 18,
+              "top": 146,
+              "width": 280,
+              "height": 70,
+              "customInputs": [],
+              "customOutputs": [],
+              "style": {
+                "objID": "ae456227-985b-42db-c830-15f644b0bb2e",
+                "useStyle": "default",
+                "conditionalStyles": [],
+                "childStyles": []
+              },
+              "timeline": [],
+              "eventHandlers": [],
+              "identifier": "snackbar_error",
+              "leftUnit": "px",
+              "topUnit": "px",
+              "widthUnit": "px",
+              "heightUnit": "px",
+              "children": [],
+              "widgetFlags": "CLICK_FOCUSABLE|GESTURE_BUBBLE|PRESS_LOCK|SCROLLABLE|SCROLL_CHAIN_HOR|SCROLL_CHAIN_VER|SCROLL_ELASTIC|SCROLL_MOMENTUM|SCROLL_WITH_ARROW|SNAPPABLE",
+              "hiddenFlag": false,
+              "hiddenFlagType": "literal",
+              "clickableFlag": true,
+              "clickableFlagType": "literal",
+              "flagScrollbarMode": "",
+              "flagScrollDirection": "",
+              "scrollSnapX": "",
+              "scrollSnapY": "",
+              "checkedStateType": "literal",
+              "disabledStateType": "literal",
+              "states": "",
+              "localStyles": {
+                "objID": "33abe517-bc9d-49ce-a4a9-0d670ca6212c"
+              },
+              "group": "",
+              "groupIndex": 0,
+              "userWidgetPageName": "SnackBar",
+              "userPropertyValues": {
+                "objID": "7328d19a-4f27-41c2-9284-d1f0d86d3b45",
+                "values": {}
+              }
             }
           ],
           "widgetFlags": "CLICKABLE|PRESS_LOCK|CLICK_FOCUSABLE|GESTURE_BUBBLE|SNAPPABLE|SCROLLABLE|SCROLL_ELASTIC|SCROLL_MOMENTUM|SCROLL_CHAIN_HOR|SCROLL_CHAIN_VER",
@@ -396,6 +442,7 @@
           },
           "timeline": [],
           "eventHandlers": [],
+          "identifier": "panel",
           "leftUnit": "px",
           "topUnit": "px",
           "widthUnit": "px",
@@ -419,7 +466,8 @@
                 "DEFAULT": {
                   "bg_color": "#00b31b",
                   "line_rounded": true,
-                  "border_color": "#ffffff"
+                  "border_color": "#ffffff",
+                  "outline_width": 0
                 }
               }
             }

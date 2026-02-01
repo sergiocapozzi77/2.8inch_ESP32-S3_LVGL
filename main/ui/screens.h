@@ -12,9 +12,13 @@ typedef struct _objects_t {
     lv_obj_t *obj0;
     lv_obj_t *battery_lbl;
     lv_obj_t *snackbar;
-    lv_obj_t *snackbar__obj0;
+    lv_obj_t *snackbar__panel;
     lv_obj_t *snackbar__product_lbl;
     lv_obj_t *snackbar__action_lbl;
+    lv_obj_t *snackbar_error;
+    lv_obj_t *snackbar_error__panel;
+    lv_obj_t *snackbar_error__product_lbl;
+    lv_obj_t *snackbar_error__action_lbl;
 } objects_t;
 
 extern objects_t objects;

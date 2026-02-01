@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <vector>
 #include "vars.h"
+#include "LVGLManager.h"
 
 static const char *TAG = "ProductFetcher";
 
@@ -59,6 +60,7 @@ void ProductFetcher::task(void *arg)
             }
             else
             {
+                LVGLManager::showErrorSnackbar("Failed to fetch product :(");
                 ESP_LOGW(TAG, "Failed to fetch product info");
             }
         }
@@ -87,6 +89,7 @@ void ProductFetcher::persistTask(void *arg)
             }
             else
             {
+                LVGLManager::showErrorSnackbar("Failed to save product: " + product.name);
                 ESP_LOGW(TAG, "Failed to save product: %s", product.name.c_str());
             }
         }

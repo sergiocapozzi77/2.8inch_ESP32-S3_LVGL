@@ -80,6 +80,14 @@ void LVGLManager::showProductSnackbar(const std::string &product,
     lv_async_call(snackbarAsync, data);
 }
 
+void LVGLManager::showErrorSnackbar(const std::string &error)
+{
+    // Allocate a copy on the heap
+    auto *errorCopy = new std::string(error);
+
+    lv_async_call(snackbarErrorAsync, errorCopy);
+}
+
 void LVGLManager::snackbarAsync(void *arg)
 {
     auto *data = static_cast<SnackbarData *>(arg);
@@ -103,6 +111,29 @@ void LVGLManager::snackbarAsync(void *arg)
                       data->product.c_str());
     lv_label_set_text(objects.snackbar__action_lbl,
                       action_txt);
+
+    // Make snackbar visible
+    lv_obj_clear_flag(objects.snackbar, LV_OBJ_FLAG_HIDDEN);
+
+    // Optional: auto-hide after 3s
+    lv_timer_t *t = lv_timer_create(
+        [](lv_timer_t *timer)
+        {
+            lv_obj_add_flag(objects.snackbar, LV_OBJ_FLAG_HIDDEN);
+            lv_timer_del(timer);
+        },
+        5000,
+        nullptr);
+
+    delete data;
+}
+
+void LVGLManager::snackbarErrorAsync(void *arg)
+{
+    auto *data = static_cast<std::string *>(arg);
+
+    lv_label_set_text(objects.snackbar__action_lbl,
+                      data->c_str());
 
     // Make snackbar visible
     lv_obj_clear_flag(objects.snackbar, LV_OBJ_FLAG_HIDDEN);

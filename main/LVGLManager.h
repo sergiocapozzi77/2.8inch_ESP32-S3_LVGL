@@ -19,9 +19,11 @@ public:
 
     static void showProductSnackbar(const std::string &product,
                                     ProductAction action);
+    static void showErrorSnackbar(const std::string &error);
 
 private:
     static void snackbarAsync(void *arg);
+    static void snackbarErrorAsync(void *arg);
     static void lvglTickCallback(void *arg);
     BatteryManager battery_manager;
     void updateBatteryUI();

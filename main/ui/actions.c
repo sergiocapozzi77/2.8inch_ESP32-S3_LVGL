@@ -42,4 +42,6 @@ void action_screen_loading(lv_event_t *e)
     // This function can be used to perform actions when the loading screen is shown
     ESP_LOGI("actions", "Loading screen shown");
     lv_obj_add_flag(objects.snackbar, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_set_style_bg_color(objects.snackbar_error__panel, lv_color_hex(0xFF0000), LV_PART_MAIN);
+    lv_obj_add_flag(objects.snackbar_error, LV_OBJ_FLAG_HIDDEN);
 }
