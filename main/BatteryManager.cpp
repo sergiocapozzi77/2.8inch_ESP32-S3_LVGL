@@ -45,26 +45,22 @@ float BatteryManager::getVoltage()
     return voltage;
 }
 
+// Optional: track highest seen voltage
+static float v_max_seen = 3.50f;
+
 int BatteryManager::getPercentage()
 {
     float v = getVoltage();
 
-    if (v >= 4.20f)
-        return 100;
-    if (v >= 4.10f)
-        return 95;
-    if (v >= 4.00f)
-        return 85;
-    if (v >= 3.90f)
-        return 70;
-    if (v >= 3.80f)
-        return 55;
-    if (v >= 3.70f)
-        return 40;
-    if (v >= 3.60f)
-        return 25;
-    if (v >= 3.50f)
-        return 10;
+    // Track highest observed voltage (slowly)
+    if (v > v_max_seen)
+        v_max_seen = v;
 
-    return 0;
+    const float v_min = 3.50f;
+    float v_max = std::max(v_max_seen, 3.90f); // safety floor
+
+    float pct = (v - v_min) / (v_max - v_min) * 100.0f;
+
+    pct = std::clamp(pct, 0.0f, 100.0f);
+    return static_cast<int>(pct);
 }
