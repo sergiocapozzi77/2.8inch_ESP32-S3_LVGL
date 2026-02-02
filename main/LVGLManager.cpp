@@ -1,12 +1,13 @@
 #include "LVGLManager.h"
 
-#include "lvgl.h"
 #include "lv_port_disp.h"
 #include "lv_port_indev.h"
 #include "ui.h"
 #include "esp_log.h"
 
 static const char *TAG = "LVGL";
+lv_timer_t *LVGLManager::snackbar_timer = nullptr;
+lv_timer_t *LVGLManager::snackbar_error_timer = nullptr;
 
 void LVGLManager::lvglTickCallback(void *arg)
 {
@@ -107,23 +108,29 @@ void LVGLManager::snackbarAsync(void *arg)
     }
 
     // Update labels
-    lv_label_set_text(objects.snackbar__product_lbl,
-                      data->product.c_str());
-    lv_label_set_text(objects.snackbar__action_lbl,
-                      action_txt);
+    lv_label_set_text(objects.snackbar__product_lbl, data->product.c_str());
+    lv_label_set_text(objects.snackbar__action_lbl, action_txt);
 
     // Make snackbar visible
     lv_obj_clear_flag(objects.snackbar, LV_OBJ_FLAG_HIDDEN);
 
-    // Optional: auto-hide after 3s
-    lv_timer_t *t = lv_timer_create(
-        [](lv_timer_t *timer)
-        {
-            lv_obj_add_flag(objects.snackbar, LV_OBJ_FLAG_HIDDEN);
-            lv_timer_del(timer);
-        },
-        5000,
-        nullptr);
+    // Create timer once, or reset if already exists
+    if (!snackbar_timer)
+    {
+        snackbar_timer = lv_timer_create(
+            [](lv_timer_t *timer)
+            {
+                lv_obj_add_flag(objects.snackbar, LV_OBJ_FLAG_HIDDEN);
+                lv_timer_pause(timer); // keep timer but stop it
+            },
+            5000,
+            nullptr);
+    }
+
+    // Reset countdown and ensure correct period
+    lv_timer_set_period(snackbar_timer, 5000);
+    lv_timer_reset(snackbar_timer);
+    lv_timer_resume(snackbar_timer);
 
     delete data;
 }
@@ -132,21 +139,29 @@ void LVGLManager::snackbarErrorAsync(void *arg)
 {
     auto *data = static_cast<std::string *>(arg);
 
-    lv_label_set_text(objects.snackbar__action_lbl,
-                      data->c_str());
+    // Update label
+    lv_label_set_text(objects.snackbar__action_lbl, data->c_str());
 
     // Make snackbar visible
     lv_obj_clear_flag(objects.snackbar, LV_OBJ_FLAG_HIDDEN);
 
-    // Optional: auto-hide after 3s
-    lv_timer_t *t = lv_timer_create(
-        [](lv_timer_t *timer)
-        {
-            lv_obj_add_flag(objects.snackbar, LV_OBJ_FLAG_HIDDEN);
-            lv_timer_del(timer);
-        },
-        5000,
-        nullptr);
+    // Create timer once, or reset if already exists
+    if (!snackbar_error_timer)
+    {
+        snackbar_error_timer = lv_timer_create(
+            [](lv_timer_t *timer)
+            {
+                lv_obj_add_flag(objects.snackbar, LV_OBJ_FLAG_HIDDEN);
+                lv_timer_pause(timer); // keep timer allocated but stopped
+            },
+            5000,
+            nullptr);
+    }
+
+    // Reset countdown and ensure correct period
+    lv_timer_set_period(snackbar_error_timer, 5000);
+    lv_timer_reset(snackbar_error_timer);
+    lv_timer_resume(snackbar_error_timer);
 
     delete data;
 }

@@ -3,6 +3,7 @@
 #include <string>
 #include "esp_timer.h"
 #include "BatteryManager.h"
+#include "lvgl.h"
 
 enum class ProductAction
 {
@@ -29,4 +30,6 @@ private:
     void updateBatteryUI();
 
     esp_timer_handle_t lvgl_tick_timer;
+    static lv_timer_t *snackbar_timer;
+    static lv_timer_t *snackbar_error_timer;
 };
