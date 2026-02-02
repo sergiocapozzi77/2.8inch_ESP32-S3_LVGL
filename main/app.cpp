@@ -11,6 +11,7 @@
 #include "product_cache.h"
 #include "esp_wifi.h"
 #include "ili9341.h"
+#include "sdkconfig.h"
 
 static const char *TAG = "APP";
 
@@ -49,6 +50,34 @@ void Application::initQueues()
     }
 
     ESP_LOGI(TAG, "Queues initialized");
+}
+
+Application::~Application()
+{
+    // Clean up dynamically allocated resources
+    if (barcode_reader)
+    {
+        delete barcode_reader;
+        barcode_reader = nullptr;
+    }
+
+    if (product_fetcher)
+    {
+        delete product_fetcher;
+        product_fetcher = nullptr;
+    }
+
+    if (barcode_queue)
+    {
+        vQueueDelete(barcode_queue);
+        barcode_queue = nullptr;
+    }
+
+    if (product_queue)
+    {
+        vQueueDelete(product_queue);
+        product_queue = nullptr;
+    }
 }
 
 void Application::initTasks()

@@ -20,7 +20,7 @@ static constexpr gpio_num_t UART_RX_PIN = GPIO_NUM_43;
 // ============================================================
 BarcodeReader::BarcodeReader(QueueHandle_t queue) : barcode_queue(queue) {}
 
-void BarcodeReader::init()
+esp_err_t BarcodeReader::init()
 {
     uart_config_t uart_config = {
         .baud_rate = UART_BAUD_RATE,
@@ -45,6 +45,8 @@ void BarcodeReader::init()
 
     ESP_LOGI(TAG, "UART initialized");
     xTaskCreate(BarcodeReader::task, "barcode_reader", 4096, this, 10, NULL);
+
+    return ESP_OK;
 }
 
 void BarcodeReader::off()

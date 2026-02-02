@@ -16,8 +16,14 @@ class Application
 private:
     QueueHandle_t barcode_queue = NULL;
     QueueHandle_t product_queue = NULL;
+
     BarcodeReader *barcode_reader = NULL;
     ProductFetcher *product_fetcher = NULL;
+
+    WiFiManager wifi_manager;
+    LVGLManager lvgl_manager;
+    ProductCache product_cache;
+    ProductService product_service;
 
     void initQueues();
     void initTasks();

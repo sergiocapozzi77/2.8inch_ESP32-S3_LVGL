@@ -9,7 +9,7 @@ class BarcodeReader
 {
 public:
     BarcodeReader(QueueHandle_t queue);
-    void init();
+    esp_err_t init();
     static void task(void *arg);
     void off();
 

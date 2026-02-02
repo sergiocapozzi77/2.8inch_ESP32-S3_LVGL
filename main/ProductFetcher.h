@@ -27,7 +27,7 @@ public:
         ProductCache *cache,
         ProductService *service);
 
-    void start();
+    esp_err_t start();
 
 private:
     static void task(void *arg);

@@ -22,10 +22,11 @@ ProductFetcher::ProductFetcher(
     persist_queue = xQueueCreate(8, sizeof(ProductPersistItem));
 }
 
-void ProductFetcher::start()
+esp_err_t ProductFetcher::start()
 {
     xTaskCreate(ProductFetcher::task, "product_fetch", 8192, this, 5, nullptr);
     xTaskCreate(ProductFetcher::persistTask, "product_persist", 8192, this, 4, nullptr);
+    return ESP_OK;
 }
 
 void ProductFetcher::task(void *arg)
