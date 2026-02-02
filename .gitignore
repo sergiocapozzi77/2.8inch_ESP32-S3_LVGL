@@ -1,2 +1,8 @@
 build/**
 main/secrets.h
+
+sdkconfig
+sdkconfig.old
+
+# Keep the defaults template
+!sdkconfig.defaults

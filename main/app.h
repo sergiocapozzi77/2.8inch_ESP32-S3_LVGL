@@ -13,20 +13,19 @@
 
 class Application
 {
-public:
-    void run();
-
 private:
-    WiFiManager wifi_manager;
-    LVGLManager lvgl_manager;
-    ProductCache product_cache;
-    ProductService product_service;
-    BarcodeReader *barcode_reader;
-    ProductFetcher *product_fetcher;
-    QueueHandle_t barcode_queue;
-    QueueHandle_t product_queue;
+    QueueHandle_t barcode_queue = NULL;
+    QueueHandle_t product_queue = NULL;
+    BarcodeReader *barcode_reader = NULL;
+    ProductFetcher *product_fetcher = NULL;
 
     void initQueues();
     void initTasks();
+    void enterDeepSleep();
+    void wakeFromSleep();
     void mainLoop();
+
+public:
+    void run();
+    ~Application(); // Add destructor for cleanup
 };
