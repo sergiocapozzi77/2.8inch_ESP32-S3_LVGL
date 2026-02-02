@@ -8,7 +8,7 @@
 class BatteryManager
 {
 public:
-    BatteryManager(adc1_channel_t channel = ADC1_CHANNEL_8); // GPIO 9 is Channel 8
+    BatteryManager(adc1_channel_t channel = ADC1_CHANNEL_8, float divider_ratio = 2.0); // GPIO 9 is Channel 8
 
     void init();
     float getVoltage();
