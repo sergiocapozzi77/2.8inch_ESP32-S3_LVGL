@@ -23,5 +23,6 @@
     "i2c_types.h": "c",
     "soc_caps.h": "c"
   },
-  "idf.flashType": "UART"
+  "idf.flashType": "UART",
+  "idf.currentSetup": "C:\\Users\\sergi\\esp\\v5.5.2\\esp-idf"
 }

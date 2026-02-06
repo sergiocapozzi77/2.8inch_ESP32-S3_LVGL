@@ -68,14 +68,15 @@ void LVGLManager::updateBatteryUI()
 struct SnackbarData
 {
     std::string product;
+    std::string category;
     ProductAction action;
 };
 
-void LVGLManager::showProductSnackbar(const std::string &product,
+void LVGLManager::showProductSnackbar(const std::string &product, const std::string &category,
                                       ProductAction action)
 {
     // Allocate data to pass safely across tasks
-    auto *data = new SnackbarData{product, action};
+    auto *data = new SnackbarData{product, category, action};
 
     // Schedule execution in LVGL context
     lv_async_call(snackbarAsync, data);
@@ -109,6 +110,7 @@ void LVGLManager::snackbarAsync(void *arg)
 
     // Update labels
     lv_label_set_text(objects.snackbar__product_lbl, data->product.c_str());
+    lv_label_set_text(objects.snackbar__category_lbl, data->category.c_str());
     lv_label_set_text(objects.snackbar__action_lbl, action_txt);
 
     // Make snackbar visible

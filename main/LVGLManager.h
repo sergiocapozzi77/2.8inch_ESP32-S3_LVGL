@@ -18,8 +18,7 @@ public:
     void init();
     void tick();
 
-    static void showProductSnackbar(const std::string &product,
-                                    ProductAction action);
+    static void showProductSnackbar(const std::string &product, const std::string &category, ProductAction action);
     static void showErrorSnackbar(const std::string &error);
 
 private:

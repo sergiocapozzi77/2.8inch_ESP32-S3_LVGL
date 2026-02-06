@@ -24,7 +24,7 @@ public:
     bool manageUpdateProduct(Product &product);
     bool addProduct(Product &product);
     bool updateProduct(Product &product);
-    bool deleteProduct(const std::string &rowId);
+    bool deleteProduct(Product &product);
 
 private:
     // Configuration (from secrets.h)

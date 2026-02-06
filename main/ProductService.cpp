@@ -355,7 +355,7 @@ bool ProductService::manageUpdateProduct(Product &product)
             if (p.quantity <= 0)
             {
                 ESP_LOGI(TAG, "Quantity <= 0, deleting %s", p.name.c_str());
-                return deleteProduct(p.rowId); // ✅ Fixed: use p.rowId
+                return deleteProduct(p); // ✅ Fixed: use p.rowId
             }
             break;
 
@@ -449,7 +449,7 @@ bool ProductService::addProduct(Product &product)
 
     cJSON_Delete(doc);
 
-    LVGLManager::showProductSnackbar(product.name, ProductAction::Added);
+    LVGLManager::showProductSnackbar(product.name, product.category, ProductAction::Added);
     return true;
 }
 
@@ -491,21 +491,21 @@ bool ProductService::updateProduct(Product &product)
         return false;
     }
 
-    LVGLManager::showProductSnackbar(product.name, ProductAction::Updated);
+    LVGLManager::showProductSnackbar(product.name, product.category, ProductAction::Updated);
     return true;
 }
 
-bool ProductService::deleteProduct(const std::string &rowId)
+bool ProductService::deleteProduct(Product &product)
 {
     std::string url = Endpoint + "/tablesdb/" + DatabaseId +
-                      "/tables/" + CollectionId + "/rows/" + rowId;
+                      "/tables/" + CollectionId + "/rows/" + product.rowId;
 
     int status = httpDelete(url);
     bool success = (status == 200 || status == 204);
 
     if (success)
     {
-        LVGLManager::showProductSnackbar("Product", ProductAction::Deleted);
+        LVGLManager::showProductSnackbar(product.name, product.category, ProductAction::Deleted);
     }
     else
     {

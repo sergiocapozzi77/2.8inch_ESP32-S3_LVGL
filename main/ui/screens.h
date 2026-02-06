@@ -15,10 +15,12 @@ typedef struct _objects_t {
     lv_obj_t *snackbar__panel;
     lv_obj_t *snackbar__product_lbl;
     lv_obj_t *snackbar__action_lbl;
+    lv_obj_t *snackbar__category_lbl;
     lv_obj_t *snackbar_error;
     lv_obj_t *snackbar_error__panel;
     lv_obj_t *snackbar_error__product_lbl;
     lv_obj_t *snackbar_error__action_lbl;
+    lv_obj_t *snackbar_error__category_lbl;
 } objects_t;
 
 extern objects_t objects;
