@@ -7,6 +7,11 @@
 extern "C" {
 #endif
 
+// Style: MainStyle_Lbl
+lv_style_t *get_style_main_style_lbl_MAIN_DEFAULT();
+void add_style_main_style_lbl(lv_obj_t *obj);
+void remove_style_main_style_lbl(lv_obj_t *obj);
+
 
 
 #ifdef __cplusplus

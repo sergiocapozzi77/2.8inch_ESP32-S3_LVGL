@@ -508,6 +508,7 @@
           "checkedStateType": "literal",
           "disabledStateType": "literal",
           "states": "",
+          "useStyle": "MainStyle_Lbl",
           "localStyles": {
             "objID": "1b7101c1-736f-4241-8c9a-443e68febdb0"
           },
@@ -551,6 +552,7 @@
           "checkedStateType": "literal",
           "disabledStateType": "literal",
           "states": "",
+          "useStyle": "MainStyle_Lbl",
           "localStyles": {
             "objID": "9a7544a2-e9ef-47e1-87bf-0b726498b2cd"
           },
@@ -594,6 +596,7 @@
           "checkedStateType": "literal",
           "disabledStateType": "literal",
           "states": "",
+          "useStyle": "MainStyle_Lbl",
           "localStyles": {
             "objID": "d74fb816-3760-48f5-f3b5-8a50c087c182"
           },
@@ -620,7 +623,24 @@
   ],
   "lvglStyles": {
     "objID": "a31bd004-35c5-b3fb-5c8b-78ea5c7693b8",
-    "styles": [],
+    "styles": [
+      {
+        "objID": "77712fe8-747d-44ad-8a52-dd4f29add147",
+        "name": "MainStyle_Lbl",
+        "forWidgetType": "LVGLLabelWidget",
+        "childStyles": [],
+        "definition": {
+          "objID": "8f063159-d4a8-40bc-c686-c4998ef87782",
+          "definition": {
+            "MAIN": {
+              "DEFAULT": {
+                "text_color": "#fcfcfc"
+              }
+            }
+          }
+        }
+      }
+    ],
     "defaultStyles": {}
   },
   "lvglGroups": {

@@ -118,6 +118,7 @@ void create_user_widget_snack_bar(lv_obj_t *parent_obj, int startWidgetIndex) {
             ((lv_obj_t **)&objects)[startWidgetIndex + 1] = obj;
             lv_obj_set_pos(obj, 19, 14);
             lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+            add_style_main_style_lbl(obj);
             lv_label_set_text(obj, "Text");
         }
         {
@@ -126,6 +127,7 @@ void create_user_widget_snack_bar(lv_obj_t *parent_obj, int startWidgetIndex) {
             ((lv_obj_t **)&objects)[startWidgetIndex + 2] = obj;
             lv_obj_set_pos(obj, 19, 53);
             lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+            add_style_main_style_lbl(obj);
             lv_label_set_text(obj, "Text");
         }
         {
@@ -134,6 +136,7 @@ void create_user_widget_snack_bar(lv_obj_t *parent_obj, int startWidgetIndex) {
             ((lv_obj_t **)&objects)[startWidgetIndex + 3] = obj;
             lv_obj_set_pos(obj, 19, 34);
             lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+            add_style_main_style_lbl(obj);
             lv_label_set_text(obj, "Text");
         }
     }
