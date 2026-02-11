@@ -12,6 +12,7 @@ struct Product
     int quantity = 0;
     std::string category;
     std::string rowId;
+    std::string expiry;
 };
 
 class ProductService

@@ -394,6 +394,97 @@
                 "objID": "7328d19a-4f27-41c2-9284-d1f0d86d3b45",
                 "values": {}
               }
+            },
+            {
+              "objID": "5bb6f807-94c2-4d24-be23-d11be5da6517",
+              "type": "LVGLButtonMatrixWidget",
+              "left": 0,
+              "top": 18,
+              "width": 320,
+              "height": 222,
+              "customInputs": [],
+              "customOutputs": [],
+              "style": {
+                "objID": "86c940dc-98b3-445e-d9a5-c4907aa56d3c",
+                "useStyle": "default",
+                "conditionalStyles": [],
+                "childStyles": []
+              },
+              "timeline": [],
+              "eventHandlers": [],
+              "identifier": "expiry_matrix",
+              "leftUnit": "px",
+              "topUnit": "px",
+              "widthUnit": "px",
+              "heightUnit": "px",
+              "children": [],
+              "widgetFlags": "CLICK_FOCUSABLE|GESTURE_BUBBLE|PRESS_LOCK|SCROLLABLE|SCROLL_CHAIN_HOR|SCROLL_CHAIN_VER|SCROLL_ELASTIC|SCROLL_MOMENTUM|SCROLL_WITH_ARROW|SNAPPABLE",
+              "hiddenFlag": true,
+              "hiddenFlagType": "literal",
+              "clickableFlag": true,
+              "clickableFlagType": "literal",
+              "flagScrollbarMode": "",
+              "flagScrollDirection": "",
+              "scrollSnapX": "",
+              "scrollSnapY": "",
+              "checkedStateType": "literal",
+              "disabledStateType": "literal",
+              "states": "",
+              "localStyles": {
+                "objID": "13052e32-cc0f-446f-d6bb-1d4b979106e7"
+              },
+              "group": "",
+              "groupIndex": 0,
+              "buttons": [
+                {
+                  "objID": "9c70e9db-15b5-469d-b20c-6acbf5cb4e1d",
+                  "text": "Btn",
+                  "width": 1
+                },
+                {
+                  "objID": "54c71c1e-cf21-45dc-f438-14abdd1c6db3",
+                  "text": "Btn",
+                  "width": 1,
+                  "ctrlCheckable": false
+                },
+                {
+                  "objID": "7255e066-1735-4439-b1a4-f11696e6a62d",
+                  "text": "Btn",
+                  "width": 1
+                },
+                {
+                  "objID": "ad542651-74a2-40cf-a693-2bb152e7fd7d",
+                  "text": "Btn",
+                  "width": 1
+                },
+                {
+                  "objID": "a12f1e49-0813-4470-9565-fc2cafbae35b",
+                  "newLine": true,
+                  "text": "Btn",
+                  "width": 1
+                },
+                {
+                  "objID": "3fbe5dec-28be-4974-ad18-d8390d2b1b2e",
+                  "text": "Btn",
+                  "width": 1
+                },
+                {
+                  "objID": "f8be508a-3f00-4a6f-e5d7-7dba111cf0c0",
+                  "text": "Btn",
+                  "width": 1
+                },
+                {
+                  "objID": "b42abca3-cf7b-4bf0-e8b1-2eb675ee526e",
+                  "text": "Btn",
+                  "width": 1
+                },
+                {
+                  "objID": "d592331b-b113-4cf1-8f47-3f315daf54f0",
+                  "text": "Btn",
+                  "width": 1
+                }
+              ],
+              "oneCheck": false
             }
           ],
           "widgetFlags": "CLICKABLE|PRESS_LOCK|CLICK_FOCUSABLE|GESTURE_BUBBLE|SNAPPABLE|SCROLLABLE|SCROLL_ELASTIC|SCROLL_MOMENTUM|SCROLL_CHAIN_HOR|SCROLL_CHAIN_VER",

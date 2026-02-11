@@ -44,4 +44,5 @@ void action_screen_loading(lv_event_t *e)
     lv_obj_add_flag(objects.snackbar, LV_OBJ_FLAG_HIDDEN);
     lv_obj_set_style_bg_color(objects.snackbar_error__panel, lv_color_hex(0xFF0000), LV_PART_MAIN);
     lv_obj_add_flag(objects.snackbar_error, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(objects.expiry_matrix, LV_OBJ_FLAG_HIDDEN);
 }

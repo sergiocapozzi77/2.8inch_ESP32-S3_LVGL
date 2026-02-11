@@ -21,6 +21,9 @@ public:
     static void showProductSnackbar(const std::string &product, const std::string &category, ProductAction action);
     static void showErrorSnackbar(const std::string &error);
 
+    static void updateExpiryMatrixButton(const char *label[9]);
+    static int waitForExpiryMatrixSelection();
+
 private:
     static void snackbarAsync(void *arg);
     static void snackbarErrorAsync(void *arg);

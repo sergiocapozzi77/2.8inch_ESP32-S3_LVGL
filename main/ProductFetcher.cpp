@@ -84,6 +84,54 @@ void ProductFetcher::persistTask(void *arg)
             product.category = item.category;
             product.quantity = item.quantity;
 
+            // Check if the category is "Meat & Fish"
+            if (product.category == "Meat & Fish")
+            {
+                // Create labels for the next 8 days
+                const char *labels[9];
+                for (int i = 0; i < 8; ++i)
+                {
+                    time_t now = time(nullptr);
+                    tm *date = localtime(&now);
+                    date->tm_mday += i + 1; // Start from tomorrow
+                    mktime(date);           // Normalize the date
+
+                    char *label = new char[16];
+                    strftime(label, 16, "%d/%m", date);
+                    labels[i] = label;
+                }
+                labels[8] = nullptr; // Null-terminate the map
+
+                // Update the expiry matrix with all labels at once
+                LVGLManager::updateExpiryMatrixButton(labels);
+
+                // Wait for user to select an expiry date
+                int selectedIndex = LVGLManager::waitForExpiryMatrixSelection();
+                if (selectedIndex >= 0 && selectedIndex < 8)
+                {
+                    time_t now = time(nullptr);
+                    tm *date = localtime(&now);
+                    date->tm_mday += selectedIndex + 1; // Calculate selected date
+                    mktime(date);                       // Normalize the date
+
+                    char expiryDate[16];
+                    strftime(expiryDate, sizeof(expiryDate), "%Y-%m-%d", date);
+                    product.expiry = expiryDate;
+                }
+                else
+                {
+                    LVGLManager::showErrorSnackbar("No expiry date selected");
+                    ESP_LOGW(TAG, "No expiry date selected");
+                    continue; // Skip persisting this item
+                }
+
+                // Free allocated labels
+                for (int i = 0; i < 8; ++i)
+                {
+                    delete[] labels[i];
+                }
+            }
+
             if (self->product_service->manageUpdateProduct(product))
             {
                 ESP_LOGI(TAG, "Product saved: %s", product.name.c_str());

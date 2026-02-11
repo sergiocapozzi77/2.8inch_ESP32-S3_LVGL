@@ -325,14 +325,18 @@ std::vector<Product> ProductService::getProducts(const std::vector<std::string> 
 
 bool ProductService::manageUpdateProduct(Product &product)
 {
+    std::vector<Product> existing;
     const auto mode = get_var_add_or_del();
 
-    // Build query
-    std::string q =
-        "{\"method\":\"equal\",\"attribute\":\"name\",\"values\":[\"" +
-        product.name + "\"]}";
+    if (product.expiry.empty())
+    {
+        // Build query
+        std::string q =
+            "{\"method\":\"equal\",\"attribute\":\"name\",\"values\":[\"" +
+            product.name + "\"]}";
 
-    auto existing = getProducts({q});
+        existing = getProducts({q});
+    }
 
     // Case 1: Product exists
     if (!existing.empty())
@@ -411,6 +415,7 @@ bool ProductService::addProduct(Product &product)
     cJSON_AddStringToObject(data, "name", product.name.c_str());
     cJSON_AddNumberToObject(data, "quantity", product.quantity);
     cJSON_AddStringToObject(data, "category", product.category.c_str());
+    cJSON_AddStringToObject(data, "expiry", product.expiry.c_str());
 
     char *json = cJSON_PrintUnformatted(root);
     if (!json)

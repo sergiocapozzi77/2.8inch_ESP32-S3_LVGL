@@ -86,6 +86,27 @@ void create_screen_main() {
             lv_obj_set_style_border_width(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
             create_user_widget_snack_bar(obj, 9);
         }
+        {
+            // expiry_matrix
+            lv_obj_t *obj = lv_btnmatrix_create(parent_obj);
+            objects.expiry_matrix = obj;
+            lv_obj_set_pos(obj, 0, 18);
+            lv_obj_set_size(obj, 320, 222);
+            static const char *map[10] = {
+                "Btn",
+                "Btn",
+                "Btn",
+                "Btn",
+                "\n",
+                "Btn",
+                "Btn",
+                "Btn",
+                "Btn",
+                NULL,
+            };
+            lv_btnmatrix_set_map(obj, map);
+            lv_obj_add_flag(obj, LV_OBJ_FLAG_HIDDEN);
+        }
     }
     
     tick_screen_main();

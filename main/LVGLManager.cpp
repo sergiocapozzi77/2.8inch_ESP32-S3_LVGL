@@ -1,4 +1,7 @@
 #include "LVGLManager.h"
+#include "freertos/FreeRTOS.h" // MUST be first FreeRTOS header
+#include "freertos/task.h"
+#include "freertos/queue.h"
 
 #include "lv_port_disp.h"
 #include "lv_port_indev.h"
@@ -166,4 +169,34 @@ void LVGLManager::snackbarErrorAsync(void *arg)
     lv_timer_resume(snackbar_error_timer);
 
     delete data;
+}
+
+void LVGLManager::updateExpiryMatrixButton(const char *labels[9])
+{
+    if (labels == nullptr)
+        return; // Ensure labels are valid
+
+    // Update the entire button matrix at once
+    lv_btnmatrix_set_map(objects.expiry_matrix, labels);
+}
+
+int LVGLManager::waitForExpiryMatrixSelection()
+{
+    // Reset selection state
+    lv_btnmatrix_set_selected_btn(objects.expiry_matrix, LV_BTNMATRIX_BTN_NONE);
+
+    // Show expiry matrix
+    lv_obj_clear_flag(objects.expiry_matrix, LV_OBJ_FLAG_HIDDEN);
+
+    // Wait for user interaction
+    while (lv_btnmatrix_get_selected_btn(objects.expiry_matrix) == LV_BTNMATRIX_BTN_NONE)
+    {
+        lv_timer_handler();
+        vTaskDelay(pdMS_TO_TICKS(10)); // Small delay to avoid busy-waiting
+    }
+
+    // Hide expiry matrix after selection
+    lv_obj_add_flag(objects.expiry_matrix, LV_OBJ_FLAG_HIDDEN);
+
+    return lv_btnmatrix_get_selected_btn(objects.expiry_matrix);
 }
