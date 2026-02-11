@@ -117,39 +117,39 @@ std::string ProductFetcher::mapUkSupermarketCategory(cJSON *tagsArray)
 
         std::string t = toLower(tagItem->valuestring);
 
-        if (t.find("vegetable") != std::string::npos || t.find("veg") != std::string::npos || t.find("fruit") != std::string::npos)
+        if (t.find("vegetable") != std::string::npos || t.find("veg") != std::string::npos || t.find("vegetables") != std::string::npos || t.find("fruit") != std::string::npos || t.find("fruits") != std::string::npos)
             return "Fruit & Veg";
 
-        if (t.find("meat") != std::string::npos || t.find("poultry") != std::string::npos || t.find("beef") != std::string::npos ||
-            t.find("chicken") != std::string::npos || t.find("fish") != std::string::npos || t.find("seafood") != std::string::npos)
+        if (t.find("meat") != std::string::npos || t.find("meats") != std::string::npos || t.find("poultry") != std::string::npos || t.find("poultries") != std::string::npos || t.find("beef") != std::string::npos ||
+            t.find("chicken") != std::string::npos || t.find("fish") != std::string::npos || t.find("fishes") != std::string::npos || t.find("seafood") != std::string::npos || t.find("seafoods") != std::string::npos)
             return "Meat & Fish";
 
-        if (t.find("dairy") != std::string::npos || t.find("milk") != std::string::npos || t.find("cheese") != std::string::npos ||
-            t.find("yogurt") != std::string::npos || t.find("egg") != std::string::npos)
+        if (t.find("dairy") != std::string::npos || t.find("milk") != std::string::npos || t.find("cheese") != std::string::npos || t.find("cheeses") != std::string::npos ||
+            t.find("yogurt") != std::string::npos || t.find("yogurts") != std::string::npos || t.find("egg") != std::string::npos || t.find("eggs") != std::string::npos)
             return "Dairy & Eggs";
 
-        if (t.find("bread") != std::string::npos || t.find("bakery") != std::string::npos || t.find("pastry") != std::string::npos)
+        if (t.find("bread") != std::string::npos || t.find("breads") != std::string::npos || t.find("bakery") != std::string::npos || t.find("pastry") != std::string::npos || t.find("pastries") != std::string::npos)
             return "Bakery";
 
         if (t.find("frozen") != std::string::npos)
             return "Frozen";
 
-        if (t.find("beverage") != std::string::npos || t.find("drink") != std::string::npos || t.find("juice") != std::string::npos || t.find("water") != std::string::npos)
+        if (t.find("beverage") != std::string::npos || t.find("beverages") != std::string::npos || t.find("drink") != std::string::npos || t.find("drinks") != std::string::npos || t.find("juice") != std::string::npos || t.find("juices") != std::string::npos || t.find("water") != std::string::npos)
             return "Drinks";
 
-        if (t.find("snack") != std::string::npos || t.find("crisps") != std::string::npos || t.find("chocolate") != std::string::npos || t.find("sweets") != std::string::npos)
+        if (t.find("snack") != std::string::npos || t.find("snacks") != std::string::npos || t.find("crisps") != std::string::npos || t.find("chocolate") != std::string::npos || t.find("chocolates") != std::string::npos || t.find("sweets") != std::string::npos)
             return "Snacks";
 
-        if (t.find("cereal") != std::string::npos || t.find("breakfast") != std::string::npos || t.find("oats") != std::string::npos)
+        if (t.find("cereal") != std::string::npos || t.find("cereals") != std::string::npos || t.find("breakfast") != std::string::npos || t.find("oats") != std::string::npos)
             return "Cereal & Breakfast";
 
         if (t.find("canned") != std::string::npos || t.find("tinned") != std::string::npos || t.find("jarred") != std::string::npos)
             return "Tins & Jars";
 
-        if (t.find("pasta") != std::string::npos || t.find("rice") != std::string::npos || t.find("grain") != std::string::npos || t.find("noodle") != std::string::npos)
+        if (t.find("pasta") != std::string::npos || t.find("pastas") != std::string::npos || t.find("rice") != std::string::npos || t.find("grains") != std::string::npos || t.find("grain") != std::string::npos || t.find("noodle") != std::string::npos || t.find("noodles") != std::string::npos)
             return "Pasta, Rice & Grains";
 
-        if (t.find("sauce") != std::string::npos || t.find("condiment") != std::string::npos || t.find("spread") != std::string::npos)
+        if (t.find("sauce") != std::string::npos || t.find("sauces") != std::string::npos || t.find("condiment") != std::string::npos || t.find("condiments") != std::string::npos || t.find("spread") != std::string::npos || t.find("spreads") != std::string::npos)
             return "Condiments & Sauces";
 
         if (t.find("household") != std::string::npos || t.find("cleaning") != std::string::npos)
@@ -167,7 +167,7 @@ bool ProductFetcher::fetchProductInfo(const std::string &barcode, ProductCacheIt
         return cache->get(barcode, out);
     }
 
-    std::string url = "https://world.openfoodfacts.org/api/v0/product/" + barcode + ".json";
+    std::string url = "https://world.openfoodfacts.org/api/v2/product/" + barcode + ".json";
     ESP_LOGI(TAG, "Fetching product info: %s", url.c_str());
 
     // Initialize to zero and assign fields individually to avoid C++ ordering errors
