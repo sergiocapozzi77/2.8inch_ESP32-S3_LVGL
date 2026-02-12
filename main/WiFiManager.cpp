@@ -3,6 +3,7 @@
 #include <string>
 #include <cstring>
 #include "esp_log.h"
+#include "esp_sntp.h"
 
 #include "WiFiManager.h"
 
@@ -51,5 +52,16 @@ void WiFiManager::eventHandler(void *arg, esp_event_base_t event_base, int32_t e
     {
         ip_event_got_ip_t *event = (ip_event_got_ip_t *)event_data;
         ESP_LOGI(TAG, "Got IP: " IPSTR, IP2STR(&event->ip_info.ip));
+
+        ESP_LOGI(TAG, "Setting timezone and initializing SNTP...");
+        // 1. Set the timezone (e.g., for London/GMT)
+        setenv("TZ", "GMT0BST,M3.5.0/1,M10.5.0", 1);
+        tzset();
+
+        // 2. Initialize SNTP
+        esp_sntp_setoperatingmode(SNTP_OPMODE_POLL);
+        esp_sntp_setservername(0, "pool.ntp.org");
+        esp_sntp_init();
+        ESP_LOGI(TAG, "SNTP initialized");
     }
 }

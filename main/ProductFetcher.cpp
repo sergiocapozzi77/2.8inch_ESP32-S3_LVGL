@@ -84,51 +84,98 @@ void ProductFetcher::persistTask(void *arg)
             product.category = item.category;
             product.quantity = item.quantity;
 
-            // Check if the category is "Meat & Fish"
-            if (product.category == "Meat & Fish")
+            // Check if the category is "Snacks"
+            if (product.category == "Snacks")
             {
-                // Create labels for the next 8 days
-                const char *labels[9];
-                for (int i = 0; i < 8; ++i)
+                bool expirySelected = false;
+                int dayOffset = 0;
+
+                while (!expirySelected)
                 {
-                    time_t now = time(nullptr);
-                    tm *date = localtime(&now);
-                    date->tm_mday += i + 1; // Start from tomorrow
-                    mktime(date);           // Normalize the date
+                    // Create labels for the next dates, with "\n" as the 4th label
+                    const char *labels[10];
 
-                    char *label = new char[16];
-                    strftime(label, 16, "%d/%m", date);
-                    labels[i] = label;
-                }
-                labels[8] = nullptr; // Null-terminate the map
+                    for (int i = 0; i < 9; ++i)
+                    {
+                        if (i == 4)
+                        {
+                            // Insert literal "\n" as the fourth label
+                            char *newlineLabel = new char[4];
+                            strcpy(newlineLabel, "\n");
+                            labels[i] = newlineLabel;
+                            continue;
+                        }
+                        else if (i == 7)
+                        {
+                            // 7th button: ">>" to generate new dates
+                            char *nextLabel = new char[3];
+                            strcpy(nextLabel, ">>");
+                            labels[i] = nextLabel;
+                            continue;
+                        }
+                        else if (i == 8)
+                        {
+                            // 8th button: "X" to skip expiry date
+                            char *skipLabel = new char[2];
+                            strcpy(skipLabel, "X");
+                            labels[i] = skipLabel;
+                            continue;
+                        }
 
-                // Update the expiry matrix with all labels at once
-                LVGLManager::updateExpiryMatrixButton(labels);
+                        time_t now = time(nullptr);
+                        tm *date = localtime(&now);
+                        date->tm_mday += dayOffset + i + 1;
+                        mktime(date);
 
-                // Wait for user to select an expiry date
-                int selectedIndex = LVGLManager::waitForExpiryMatrixSelection();
-                if (selectedIndex >= 0 && selectedIndex < 8)
-                {
-                    time_t now = time(nullptr);
-                    tm *date = localtime(&now);
-                    date->tm_mday += selectedIndex + 1; // Calculate selected date
-                    mktime(date);                       // Normalize the date
+                        char *label = new char[16];
+                        strftime(label, 16, "%d/%m", date);
+                        labels[i] = label;
+                    }
 
-                    char expiryDate[16];
-                    strftime(expiryDate, sizeof(expiryDate), "%Y-%m-%d", date);
-                    product.expiry = expiryDate;
-                }
-                else
-                {
-                    LVGLManager::showErrorSnackbar("No expiry date selected");
-                    ESP_LOGW(TAG, "No expiry date selected");
-                    continue; // Skip persisting this item
-                }
+                    // Null-terminate the array
+                    labels[9] = nullptr;
 
-                // Free allocated labels
-                for (int i = 0; i < 8; ++i)
-                {
-                    delete[] labels[i];
+                    // Update the expiry matrix
+                    LVGLManager::updateExpiryMatrixButton(labels);
+
+                    // Wait for user selection
+                    int selectedIndex = LVGLManager::waitForExpiryMatrixSelection();
+                    ESP_LOGI(TAG, "User selected index: %d", selectedIndex);
+                    if (selectedIndex == 6)
+                    {
+                        // Generate new dates starting from the last date of the previous set
+                        dayOffset += 7; // Move forward by 6 days
+                        ESP_LOGI(TAG, "Loading next set of expiry dates (offset: %d)", dayOffset);
+                    }
+                    else if (selectedIndex == 7)
+                    {
+                        expirySelected = true;
+                        break;
+                    }
+                    else if (selectedIndex >= 0 && selectedIndex < 6)
+                    {
+                        time_t now = time(nullptr);
+                        tm *date = localtime(&now);
+                        date->tm_mday += dayOffset + selectedIndex + 1;
+                        mktime(date);
+
+                        char expiryDate[16];
+                        strftime(expiryDate, sizeof(expiryDate), "%Y-%m-%d", date);
+                        product.expiry = expiryDate;
+                        ESP_LOGI(TAG, "Selected expiry date: %s", product.expiry.c_str());
+                        expirySelected = true;
+                    }
+                    else
+                    {
+                        LVGLManager::showErrorSnackbar("Invalid selection");
+                        ESP_LOGW(TAG, "Invalid selection");
+                    }
+
+                    // Free allocated labels
+                    for (int i = 0; i < 9; ++i)
+                    {
+                        delete[] labels[i];
+                    }
                 }
             }
 

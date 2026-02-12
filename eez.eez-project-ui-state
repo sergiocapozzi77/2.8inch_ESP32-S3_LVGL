@@ -4,6 +4,7 @@
     "selectedUserWidgetObject": "[eez.eez-project]:/userWidgets/0",
     "selectedGlobalVariableObject": "[eez.eez-project]:/variables/globalVariables/0",
     "selectedEnumObject": "[eez.eez-project]:/variables/enums/0",
+    "selectedStyleObject": "[eez.eez-project]:/lvglStyles/styles/0",
     "subnavigationSelectedItems": {
       "variables-tab/sub-navigation/selected-item": "Global"
     }
@@ -26,6 +27,7 @@
           },
           {
             "type": "border",
+            "selected": 0,
             "size": 240,
             "location": "right",
             "children": [
@@ -229,7 +231,8 @@
                   },
                   "icon": "svg:page"
                 }
-              ]
+              ],
+              "active": true
             },
             {
               "type": "row",
@@ -249,8 +252,7 @@
                       "enableClose": false,
                       "icon": "svg:properties"
                     }
-                  ],
-                  "active": true
+                  ]
                 },
                 {
                   "type": "tabset",
@@ -786,7 +788,8 @@
                       "component": "styles",
                       "enableClose": false
                     }
-                  ]
+                  ],
+                  "active": true
                 },
                 {
                   "type": "tabset",
@@ -1000,7 +1003,8 @@
         "0": {
           "0": {},
           "1": {},
-          "2": {
+          "2": {},
+          "3": {
             "$selected": true
           }
         }
@@ -1021,7 +1025,8 @@
     },
     "[eez.eez-project]:/userWidgets/0[flow-state]": {
       "selection": {
-        "1": {
+        "1": {},
+        "2": {
           "$selected": true
         }
       },
@@ -1037,6 +1042,11 @@
         "position": 0,
         "secondToPx": 200,
         "scrollLeft": 0
+      }
+    },
+    "[eez.eez-project]:/lvglStyles/styles[tree-state]": {
+      "0": {
+        "$selected": true
       }
     }
   },
@@ -1055,12 +1065,7 @@
   "lvglPart": "MAIN",
   "lvglState": "DEFAULT",
   "lvglExpandedPropertiesGroup": [
-    "POSITION AND SIZE",
-    "LAYOUT",
-    "BORDER",
-    "OUTLINE",
-    "LINE",
-    "BACKGROUND"
+    "TEXT"
   ],
   "showInactiveFlowsInDebugger": true,
   "globalFlowZoom": true,

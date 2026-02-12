@@ -145,10 +145,10 @@ void LVGLManager::snackbarErrorAsync(void *arg)
     auto *data = static_cast<std::string *>(arg);
 
     // Update label
-    lv_label_set_text(objects.snackbar__action_lbl, data->c_str());
+    lv_label_set_text(objects.snackbar_error__action_lbl, data->c_str());
 
     // Make snackbar visible
-    lv_obj_clear_flag(objects.snackbar, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_clear_flag(objects.snackbar_error, LV_OBJ_FLAG_HIDDEN);
 
     // Create timer once, or reset if already exists
     if (!snackbar_error_timer)
@@ -156,7 +156,7 @@ void LVGLManager::snackbarErrorAsync(void *arg)
         snackbar_error_timer = lv_timer_create(
             [](lv_timer_t *timer)
             {
-                lv_obj_add_flag(objects.snackbar, LV_OBJ_FLAG_HIDDEN);
+                lv_obj_add_flag(objects.snackbar_error, LV_OBJ_FLAG_HIDDEN);
                 lv_timer_pause(timer); // keep timer allocated but stopped
             },
             5000,
