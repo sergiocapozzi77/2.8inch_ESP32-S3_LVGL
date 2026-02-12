@@ -30,6 +30,7 @@ private:
     static void lvglTickCallback(void *arg);
     BatteryManager battery_manager;
     void updateBatteryUI();
+    void updateWiFiUI();
 
     esp_timer_handle_t lvgl_tick_timer;
     static lv_timer_t *snackbar_timer;

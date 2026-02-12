@@ -84,8 +84,8 @@ void ProductFetcher::persistTask(void *arg)
             product.category = item.category;
             product.quantity = item.quantity;
 
-            // Check if the category is "Snacks"
-            if (product.category == "Snacks")
+            // Check if the category is "Meat & Fish" to prompt for expiry date
+            if (product.category == "Meat & Fish")
             {
                 bool expirySelected = false;
                 int dayOffset = 0;

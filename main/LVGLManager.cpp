@@ -7,6 +7,7 @@
 #include "lv_port_indev.h"
 #include "ui.h"
 #include "esp_log.h"
+#include "WiFiManager.h"
 
 static const char *TAG = "LVGL";
 lv_timer_t *LVGLManager::snackbar_timer = nullptr;
@@ -41,7 +42,21 @@ void LVGLManager::tick()
 {
     ui_tick();
     updateBatteryUI();
+    updateWiFiUI();
     lv_timer_handler();
+}
+
+void LVGLManager::updateWiFiUI()
+{
+    // This method should be called from the LVGL thread (main task)
+    if (WiFiManager::isConnected())
+    {
+        lv_obj_clear_flag(objects.wifi_img, LV_OBJ_FLAG_HIDDEN);
+    }
+    else
+    {
+        lv_obj_add_flag(objects.wifi_img, LV_OBJ_FLAG_HIDDEN);
+    }
 }
 
 void LVGLManager::updateBatteryUI()

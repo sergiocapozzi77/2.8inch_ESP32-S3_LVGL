@@ -16,6 +16,7 @@ idf_component_register(
         ui/images.c
         ui/vars.c
         ui/ui.c
+        ui/ui_image_wifi.c
     INCLUDE_DIRS
         .
         ui

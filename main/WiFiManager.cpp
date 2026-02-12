@@ -9,6 +9,9 @@
 
 static const char *TAG = "WiFiManager";
 
+// Static member initialization
+volatile bool WiFiManager::wifi_connected = false;
+
 // ============================================================
 // WiFiManager Implementation
 // ============================================================
@@ -46,12 +49,14 @@ void WiFiManager::eventHandler(void *arg, esp_event_base_t event_base, int32_t e
     else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED)
     {
         ESP_LOGW(TAG, "WiFi disconnected. Reconnecting...");
+        wifi_connected = false;
         esp_wifi_connect();
     }
     else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP)
     {
         ip_event_got_ip_t *event = (ip_event_got_ip_t *)event_data;
         ESP_LOGI(TAG, "Got IP: " IPSTR, IP2STR(&event->ip_info.ip));
+        wifi_connected = true;
 
         ESP_LOGI(TAG, "Setting timezone and initializing SNTP...");
         // 1. Set the timezone (e.g., for London/GMT)
@@ -64,4 +69,9 @@ void WiFiManager::eventHandler(void *arg, esp_event_base_t event_base, int32_t e
         esp_sntp_init();
         ESP_LOGI(TAG, "SNTP initialized");
     }
+}
+
+bool WiFiManager::isConnected()
+{
+    return wifi_connected;
 }

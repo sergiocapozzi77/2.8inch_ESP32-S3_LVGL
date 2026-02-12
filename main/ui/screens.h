@@ -10,6 +10,8 @@ extern "C" {
 typedef struct _objects_t {
     lv_obj_t *main;
     lv_obj_t *obj0;
+    lv_obj_t *topbar;
+    lv_obj_t *wifi_img;
     lv_obj_t *battery_lbl;
     lv_obj_t *snackbar;
     lv_obj_t *snackbar__panel;
