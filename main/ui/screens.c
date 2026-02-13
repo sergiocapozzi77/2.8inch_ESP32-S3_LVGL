@@ -14,7 +14,7 @@ objects_t objects;
 lv_obj_t *tick_value_change_obj;
 uint32_t active_theme_index = 0;
 
-static void event_handler_checked_cb_main_obj0(lv_event_t *e) {
+static void event_handler_checked_cb_main_addremove_matrix(lv_event_t *e) {
     lv_obj_t *ta = lv_event_get_target(e);
     if (lv_obj_has_state(ta, LV_STATE_CHECKED)) {
         action_product_action(e);
@@ -63,13 +63,14 @@ void create_screen_main() {
             }
         }
         {
+            // addremove_matrix
             lv_obj_t *obj = lv_btnmatrix_create(parent_obj);
-            objects.obj0 = obj;
+            objects.addremove_matrix = obj;
             lv_obj_set_pos(obj, 0, 18);
             lv_obj_set_size(obj, 320, 222);
             static const char *map[3] = {
                 "Add",
-                "Del",
+                "Remove",
                 NULL,
             };
             static lv_btnmatrix_ctrl_t ctrl_map[2] = {
@@ -79,7 +80,7 @@ void create_screen_main() {
             lv_btnmatrix_set_map(obj, map);
             lv_btnmatrix_set_ctrl_map(obj, ctrl_map);
             lv_btnmatrix_set_one_checked(obj, true);
-            lv_obj_add_event_cb(obj, event_handler_checked_cb_main_obj0, LV_EVENT_VALUE_CHANGED, (void *)0);
+            lv_obj_add_event_cb(obj, event_handler_checked_cb_main_addremove_matrix, LV_EVENT_VALUE_CHANGED, (void *)0);
             lv_obj_add_flag(obj, LV_OBJ_FLAG_CHECKABLE);
             lv_obj_set_style_border_width(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
             lv_obj_set_style_radius(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);

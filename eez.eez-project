@@ -360,6 +360,7 @@
                   "userData": 0
                 }
               ],
+              "identifier": "addremove_matrix",
               "leftUnit": "px",
               "topUnit": "px",
               "widthUnit": "px",
@@ -401,10 +402,11 @@
                 },
                 {
                   "objID": "2e394d24-0a1b-4f05-ee47-b0c92948f55e",
-                  "text": "Del",
+                  "text": "Remove",
                   "width": 1,
                   "ctrlCheckable": true,
-                  "ctrlChecked": false
+                  "ctrlChecked": false,
+                  "ctrlCustom1": false
                 }
               ],
               "oneCheck": true
@@ -844,6 +846,27 @@
             "MAIN": {
               "DEFAULT": {
                 "text_color": "#fcfcfc"
+              }
+            }
+          }
+        }
+      },
+      {
+        "objID": "538c3895-8ad4-49f3-dd1c-530c42315df1",
+        "name": "RedStyle_matrix",
+        "forWidgetType": "LVGLButtonMatrixWidget",
+        "childStyles": [],
+        "definition": {
+          "objID": "b9fbba03-99bc-47b9-a85b-13f064d53229",
+          "definition": {
+            "ITEMS": {
+              "DEFAULT": {
+                "bg_color": "#c41111",
+                "text_color": "#ffffff"
+              },
+              "CHECKED": {
+                "bg_color": "#e41010",
+                "text_color": "#ffffff"
               }
             }
           }
