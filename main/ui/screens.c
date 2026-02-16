@@ -80,6 +80,7 @@ void create_screen_main() {
             lv_btnmatrix_set_map(obj, map);
             lv_btnmatrix_set_ctrl_map(obj, ctrl_map);
             lv_btnmatrix_set_one_checked(obj, true);
+            lv_obj_add_event_cb(obj, action_add_remove_draw_begin, LV_EVENT_DRAW_PART_BEGIN, (void *)0);
             lv_obj_add_event_cb(obj, event_handler_checked_cb_main_addremove_matrix, LV_EVENT_VALUE_CHANGED, (void *)0);
             lv_obj_add_flag(obj, LV_OBJ_FLAG_CHECKABLE);
             lv_obj_set_style_border_width(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);

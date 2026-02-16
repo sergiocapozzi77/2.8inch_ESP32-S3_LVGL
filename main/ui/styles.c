@@ -39,6 +39,7 @@ void remove_style_main_style_lbl(lv_obj_t *obj) {
 
 void init_style_red_style_matrix_ITEMS_DEFAULT(lv_style_t *style) {
     lv_style_set_bg_color(style, lv_color_hex(0xffc41111));
+    lv_style_set_text_color(style, lv_color_hex(0xffffffff));
 };
 
 lv_style_t *get_style_red_style_matrix_ITEMS_DEFAULT() {

@@ -38,6 +38,32 @@ void action_product_action(lv_event_t *e)
     ESP_LOGI("actions", "Button text: %s\n", txt ? txt : "(no text)");
 }
 
+void action_add_remove_draw_begin(lv_event_t *e)
+{
+    lv_obj_t *obj = lv_event_get_target(e);
+    lv_obj_draw_part_dsc_t *dsc = lv_event_get_draw_part_dsc(e);
+
+    if (dsc->part == LV_PART_ITEMS)
+    {
+        uint32_t btn_id = dsc->id;
+
+        if (btn_id == 0) // Blue button
+        {
+            if (lv_btnmatrix_has_btn_ctrl(obj, btn_id, LV_BTNMATRIX_CTRL_CHECKED))
+                dsc->rect_dsc->bg_color = lv_color_hex(0x0000CC); // Dark blue when pressed
+            else
+                dsc->rect_dsc->bg_color = lv_color_hex(0x0000FF); // Blue default
+        }
+        else if (btn_id == 1) // Red button
+        {
+            if (lv_btnmatrix_has_btn_ctrl(obj, btn_id, LV_BTNMATRIX_CTRL_CHECKED))
+                dsc->rect_dsc->bg_color = lv_color_hex(0xCC0000); // Dark red when pressed
+            else
+                dsc->rect_dsc->bg_color = lv_color_hex(0xFF0000); // Red default
+        }
+    }
+}
+
 void action_screen_loading(lv_event_t *e)
 {
     // This function can be used to perform actions when the loading screen is shown
@@ -47,16 +73,4 @@ void action_screen_loading(lv_event_t *e)
     lv_obj_add_flag(objects.snackbar_error, LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(objects.expiry_matrix, LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(objects.wifi_img, LV_OBJ_FLAG_HIDDEN);
-
-    // // Set control flags to differentiate buttons
-    // lv_btnmatrix_set_btn_ctrl(objects.addremove_matrix, 0, LV_BTNMATRIX_CTRL_CUSTOM_1); // Blue button
-    // lv_btnmatrix_set_btn_ctrl(objects.addremove_matrix, 1, LV_BTNMATRIX_CTRL_CUSTOM_2); // Red button
-
-    // // Red button (button 1) - DEFAULT state
-    // lv_obj_add_style(objects.addremove_matrix, get_style_red_style_matrix_ITEMS_DEFAULT(),
-    //                  LV_PART_ITEMS | LV_STATE_DEFAULT | LV_BTNMATRIX_CTRL_CUSTOM_2);
-
-    // // Red button (button 1) - PRESSED state
-    // lv_obj_add_style(objects.addremove_matrix, get_style_red_style_matrix_ITEMS_CHECKED(),
-    //                  LV_PART_ITEMS | LV_STATE_CHECKED | LV_BTNMATRIX_CTRL_CUSTOM_2);
 }

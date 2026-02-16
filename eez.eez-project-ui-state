@@ -4,7 +4,7 @@
     "selectedUserWidgetObject": "[eez.eez-project]:/userWidgets/0",
     "selectedGlobalVariableObject": "[eez.eez-project]:/variables/globalVariables/0",
     "selectedEnumObject": "[eez.eez-project]:/variables/enums/0",
-    "selectedStyleObject": "[eez.eez-project]:/lvglStyles/styles/0",
+    "selectedStyleObject": "[eez.eez-project]:/lvglStyles/styles/1",
     "subnavigationSelectedItems": {
       "variables-tab/sub-navigation/selected-item": "Global"
     }
@@ -193,7 +193,7 @@
               "type": "tabset",
               "id": "EDITORS",
               "weight": 51.91114245416079,
-              "selected": 2,
+              "selected": 1,
               "enableDeleteWhenEmpty": false,
               "enableClose": false,
               "children": [
@@ -210,18 +210,6 @@
                 },
                 {
                   "type": "tab",
-                  "id": "#1bd32a73-0eeb-4c72-9eeb-d100d76489cd",
-                  "name": "Settings",
-                  "component": "editor",
-                  "config": {
-                    "objectPath": "[eez.eez-project]:/settings",
-                    "subObjectPath": "[eez.eez-project]:/settings",
-                    "permanent": false
-                  },
-                  "icon": "material:settings"
-                },
-                {
-                  "type": "tab",
                   "id": "#c8ec3b0f-5b75-4034-8f8e-8788d288c3df",
                   "name": "Main",
                   "component": "editor",
@@ -231,8 +219,7 @@
                   },
                   "icon": "svg:page"
                 }
-              ],
-              "active": true
+              ]
             },
             {
               "type": "row",
@@ -252,7 +239,8 @@
                       "enableClose": false,
                       "icon": "svg:properties"
                     }
-                  ]
+                  ],
+                  "active": true
                 },
                 {
                   "type": "tabset",
@@ -1002,11 +990,11 @@
       "selection": {
         "0": {
           "0": {},
-          "1": {},
-          "2": {},
-          "3": {
+          "1": {
             "$selected": true
-          }
+          },
+          "2": {},
+          "3": {}
         }
       },
       "transform": {
@@ -1045,7 +1033,8 @@
       }
     },
     "[eez.eez-project]:/lvglStyles/styles[tree-state]": {
-      "0": {
+      "0": {},
+      "1": {
         "$selected": true
       }
     }
@@ -1062,11 +1051,9 @@
   "showComponentDescriptions": true,
   "logsPanelFilter": "all",
   "selectedStylePropertyName": "",
-  "lvglPart": "MAIN",
-  "lvglState": "DEFAULT",
-  "lvglExpandedPropertiesGroup": [
-    "TEXT"
-  ],
+  "lvglPart": "ITEMS",
+  "lvglState": "PRESSED",
+  "lvglExpandedPropertiesGroup": [],
   "showInactiveFlowsInDebugger": true,
   "globalFlowZoom": true,
   "flowZoom": 1.5,

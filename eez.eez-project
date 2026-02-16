@@ -151,6 +151,14 @@
       "localVariables": [],
       "userProperties": [],
       "name": "ScreenLoading"
+    },
+    {
+      "objID": "8bfde5f9-d4e2-4000-f3db-9856a66ab12f",
+      "components": [],
+      "connectionLines": [],
+      "localVariables": [],
+      "userProperties": [],
+      "name": "AddRemoveDrawBegin"
     }
   ],
   "userPages": [
@@ -352,6 +360,13 @@
               },
               "timeline": [],
               "eventHandlers": [
+                {
+                  "objID": "a5947bdf-9038-4d63-81f5-3694d583be7b",
+                  "eventName": "DRAW_PART_BEGIN",
+                  "handlerType": "action",
+                  "action": "AddRemoveDrawBegin",
+                  "userData": 0
+                },
                 {
                   "objID": "97550c60-adfb-462c-c758-7d9684b2210b",
                   "eventName": "CHECKED",

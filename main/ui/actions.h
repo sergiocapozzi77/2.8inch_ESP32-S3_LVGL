@@ -9,6 +9,7 @@ extern "C" {
 
 extern void action_product_action(lv_event_t * e);
 extern void action_screen_loading(lv_event_t * e);
+extern void action_add_remove_draw_begin(lv_event_t * e);
 
 
 #ifdef __cplusplus
