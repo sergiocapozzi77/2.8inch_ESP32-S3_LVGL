@@ -14,24 +14,33 @@
 class Application
 {
 private:
-    QueueHandle_t barcode_queue = NULL;
-    QueueHandle_t product_queue = NULL;
+    // Queues
+    QueueHandle_t barcode_queue = nullptr;
+    QueueHandle_t product_queue = nullptr;
 
-    BarcodeReader *barcode_reader = NULL;
-    ProductFetcher *product_fetcher = NULL;
+    // Task objects
+    BarcodeReader *barcode_reader = nullptr;
+    ProductFetcher *product_fetcher = nullptr;
 
+    // Managers / Services
     WiFiManager wifi_manager;
     LVGLManager lvgl_manager;
     ProductCache product_cache;
     ProductService product_service;
 
+    // Initialization steps
+    void initNVS();
+    void initHardware();
     void initQueues();
     void initTasks();
+
+    // Runtime
     void enterDeepSleep();
-    void wakeFromSleep();
     void mainLoop();
 
 public:
+    Application() = default;
+    ~Application() = default; // Not strictly needed in embedded reset model
+
     void run();
-    ~Application(); // Add destructor for cleanup
 };

@@ -6,6 +6,7 @@
 #include <vector>
 #include "vars.h"
 #include "LVGLManager.h"
+#include "esp_crt_bundle.h"
 
 static const char *TAG = "ProductFetcher";
 
@@ -262,16 +263,18 @@ bool ProductFetcher::fetchProductInfo(const std::string &barcode, ProductCacheIt
         return cache->get(barcode, out);
     }
 
-    std::string url = "https://world.openfoodfacts.org/api/v2/product/" + barcode + ".json";
+    std::string url = "https://world.openfoodfacts.org/api/v0/product/" + barcode + ".json?fields=product_name,categories_tags";
+
     ESP_LOGI(TAG, "Fetching product info: %s", url.c_str());
 
     // Initialize to zero and assign fields individually to avoid C++ ordering errors
     esp_http_client_config_t config = {};
     config.url = url.c_str();
     config.method = HTTP_METHOD_GET;
-    config.timeout_ms = 5000;
-    config.skip_cert_common_name_check = true;
-    config.buffer_size = 2048; // Increased slightly for JSON safety
+    config.timeout_ms = 30000;
+    config.crt_bundle_attach = esp_crt_bundle_attach;
+    config.skip_cert_common_name_check = false; // no longer needed
+    config.buffer_size = 4096;                  // Increased slightly for JSON safety
 
     esp_http_client_handle_t client = esp_http_client_init(&config);
     if (!client)
@@ -299,20 +302,19 @@ bool ProductFetcher::fetchProductInfo(const std::string &barcode, ProductCacheIt
     }
 
     std::string payload;
-    char buffer[1024];
-    int bytes_read;
-    int total_read = 0;
+    payload.reserve(4096); // OpenFoodFacts filtered response is tiny
 
+    char buffer[512];
+    int bytes_read;
     while ((bytes_read = esp_http_client_read(client, buffer, sizeof(buffer))) > 0)
     {
-        total_read += bytes_read;
-        if (total_read > 131072) // 128KB Safety Cap
+        payload.append(buffer, bytes_read);
+        if (payload.size() > 8192) // much tighter cap now that fields= is used
         {
-            ESP_LOGE(TAG, "Response too large");
+            ESP_LOGE(TAG, "Response unexpectedly large");
             esp_http_client_cleanup(client);
             return false;
         }
-        payload.append(buffer, bytes_read);
     }
 
     esp_http_client_cleanup(client);
