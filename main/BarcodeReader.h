@@ -12,6 +12,7 @@ public:
     esp_err_t init();
     static void task(void *arg);
     void off();
+    void on();
 
 private:
     QueueHandle_t barcode_queue;

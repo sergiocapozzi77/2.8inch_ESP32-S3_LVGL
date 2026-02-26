@@ -49,6 +49,18 @@ esp_err_t BarcodeReader::init()
     return ESP_OK;
 }
 
+void BarcodeReader::on()
+{
+    // Power on the barcode reader (opposite of off)
+    gpio_set_level(BARCODE_PWR_GPIO, 1);
+
+    // Reconfigure UART pins
+    ESP_ERROR_CHECK(uart_set_pin(UART_PORT_NUM, UART_TX_PIN, UART_RX_PIN,
+                                 UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE));
+
+    ESP_LOGI(TAG, "Barcode reader powered on");
+}
+
 void BarcodeReader::off()
 {
 

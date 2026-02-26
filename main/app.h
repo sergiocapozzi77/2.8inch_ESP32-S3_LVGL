@@ -35,7 +35,7 @@ private:
     void initTasks();
 
     // Runtime
-    void enterDeepSleep();
+    void enterLightSleep();
     void mainLoop();
 
 public:
