@@ -257,11 +257,15 @@ std::string ProductFetcher::mapUkSupermarketCategory(cJSON *tagsArray)
 
 bool ProductFetcher::fetchProductInfo(const std::string &barcode, ProductCacheItem &out, ProductCache *cache)
 {
+
     // Check cache first
     if (cache && cache->contains(barcode))
     {
+        LVGLManager::updateStatusLabel("Loading from cache...");
         return cache->get(barcode, out);
     }
+
+    LVGLManager::updateStatusLabel("Fetching product info...");
 
     std::string url = "https://world.openfoodfacts.org/api/v0/product/" + barcode + ".json?fields=product_name,categories_tags";
 
@@ -336,6 +340,7 @@ bool ProductFetcher::fetchProductInfo(const std::string &barcode, ProductCacheIt
     cJSON *product = cJSON_GetObjectItem(root, "product");
     if (cJSON_IsObject(product))
     {
+        LVGLManager::updateStatusLabel("Parsing product info...");
         cJSON *nameItem = cJSON_GetObjectItem(product, "product_name");
         out.name = (nameItem && cJSON_IsString(nameItem)) ? nameItem->valuestring : "Unknown";
 

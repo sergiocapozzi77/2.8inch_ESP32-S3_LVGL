@@ -325,6 +325,7 @@ std::vector<Product> ProductService::getProducts(const std::vector<std::string> 
 
 bool ProductService::manageUpdateProduct(Product &product)
 {
+    LVGLManager::updateStatusLabel("Saving product...");
     std::vector<Product> existing;
     const auto mode = get_var_add_or_del();
 
@@ -454,6 +455,7 @@ bool ProductService::addProduct(Product &product)
 
     cJSON_Delete(doc);
 
+    LVGLManager::updateStatusLabel("Product added");
     LVGLManager::showProductSnackbar(product.name, product.category, ProductAction::Added);
     return true;
 }
@@ -496,6 +498,7 @@ bool ProductService::updateProduct(Product &product)
         return false;
     }
 
+    LVGLManager::updateStatusLabel("Product updated");
     LVGLManager::showProductSnackbar(product.name, product.category, ProductAction::Updated);
     return true;
 }
@@ -510,6 +513,7 @@ bool ProductService::deleteProduct(Product &product)
 
     if (success)
     {
+        LVGLManager::updateStatusLabel("Product deleted");
         LVGLManager::showProductSnackbar(product.name, product.category, ProductAction::Deleted);
     }
     else

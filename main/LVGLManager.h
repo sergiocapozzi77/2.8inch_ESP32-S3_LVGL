@@ -23,8 +23,12 @@ public:
 
     static void updateExpiryMatrixButton(const char *label[9]);
     static int waitForExpiryMatrixSelection();
+    // Add this public method
+    static void updateStatusLabel(const std::string &status);
 
 private:
+    // Add this private static callback
+    static void updateStatusLabelAsync(void *arg);
     static void snackbarAsync(void *arg);
     static void snackbarErrorAsync(void *arg);
     static void lvglTickCallback(void *arg);

@@ -46,6 +46,25 @@ void LVGLManager::tick()
     lv_timer_handler();
 }
 
+void LVGLManager::updateStatusLabel(const std::string &status)
+{
+    // Allocate a copy on the heap for thread safety
+    auto *statusCopy = new std::string(status);
+
+    // Schedule execution in LVGL context
+    lv_async_call(updateStatusLabelAsync, statusCopy);
+}
+
+void LVGLManager::updateStatusLabelAsync(void *arg)
+{
+    auto *status = static_cast<std::string *>(arg);
+
+    // Update the label
+    lv_label_set_text(objects.status_lbl, status->c_str());
+
+    delete status;
+}
+
 void LVGLManager::updateWiFiUI()
 {
     // This method should be called from the LVGL thread (main task)
