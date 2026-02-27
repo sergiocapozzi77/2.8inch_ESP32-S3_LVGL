@@ -135,17 +135,13 @@ static void handleExpirySelection(int selectedIndex, void *user_data)
         freeCurrentLabels();
         LVGLManager::updateExpiryMatrixButton(nullptr);
         // Save product without expiry date
-        if (state->service->manageUpdateProduct(state->product))
-        {
-            ESP_LOGI(TAG, "Product saved: %s", state->product.name.c_str());
-        }
-        else
-        {
-            LVGLManager::showErrorSnackbar("Failed to save product: " + state->product.name);
-            ESP_LOGW(TAG, "Failed to save product: %s", state->product.name.c_str());
-        }
-
-        delete state; // Clean up state
+        xTaskCreate(
+            ProductFetcher::saveProductTask,
+            "save_product",
+            4096, // stack
+            state,
+            4,
+            nullptr);
     }
     else if (selectedIndex >= 0 && selectedIndex < 6 && selectedIndex != 4) // Valid date selection
     {
@@ -167,17 +163,13 @@ static void handleExpirySelection(int selectedIndex, void *user_data)
         freeCurrentLabels();
 
         // Save product with expiry date
-        if (state->service->manageUpdateProduct(state->product))
-        {
-            ESP_LOGI(TAG, "Product saved: %s", state->product.name.c_str());
-        }
-        else
-        {
-            LVGLManager::showErrorSnackbar("Failed to save product: " + state->product.name);
-            ESP_LOGW(TAG, "Failed to save product: %s", state->product.name.c_str());
-        }
-
-        delete state; // Clean up state
+        xTaskCreate(
+            ProductFetcher::saveProductTask,
+            "save_product",
+            4096, // stack
+            state,
+            4,
+            nullptr);
     }
     else
     {
@@ -185,6 +177,25 @@ static void handleExpirySelection(int selectedIndex, void *user_data)
         ESP_LOGW(TAG, "Invalid selection");
         showExpiryDateSelection(state); // Show dates again
     }
+}
+
+static void saveProductTask(void *arg)
+{
+    auto *state = static_cast<ExpirySelectionState *>(arg);
+
+    bool ok = state->service->manageUpdateProduct(state->product);
+
+    if (!ok)
+    {
+        LVGLManager::showErrorSnackbar("Failed to save product: " + state->product.name);
+    }
+    else
+    {
+        ESP_LOGI("ProductFetcher", "Product saved: %s", state->product.name.c_str());
+    }
+
+    delete state;         // clean up here instead
+    vTaskDelete(nullptr); // delete this task
 }
 
 // Helper function to display expiry date selection

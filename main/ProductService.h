@@ -28,6 +28,7 @@ public:
     bool deleteProduct(Product &product);
 
 private:
+    void saveProductTask(void *arg);
     // Configuration (from secrets.h)
     const std::string apiKey = APPWRITE_API_KEY;
     const std::string Endpoint = "https://fra.cloud.appwrite.io/v1";

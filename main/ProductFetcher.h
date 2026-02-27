@@ -31,6 +31,7 @@ public:
     esp_err_t start();
 
     // TaskHandle_t getTaskHandle() const { return task_handle; }
+    static void saveProductTask(void *arg);
 
 private:
     static void task(void *arg);
