@@ -51,6 +51,7 @@ void LVGLManager::tick()
 
 void LVGLManager::updateStatusLabel(const std::string &status)
 {
+
     // Allocate a copy on the heap for thread safety
     auto *statusCopy = new std::string(status);
 

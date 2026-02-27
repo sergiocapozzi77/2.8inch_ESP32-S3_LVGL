@@ -78,104 +78,102 @@ void ProductFetcher::task(void *arg)
     }
 }
 
-// Helper function to create and display expiry date labels
 static void showExpiryDateSelection(ExpirySelectionState *state);
 
-// Callback for expiry matrix selection
-// Callback for expiry matrix selection
-// Static storage for labels to keep them alive while the matrix is shown
-static const char *current_labels[10] = {nullptr};
-
-// Helper function to free old labels
-static void freeCurrentLabels()
-{
-    for (int i = 0; i < 9; ++i)
-    {
-        if (current_labels[i] != nullptr)
-        {
-            delete[] current_labels[i];
-            current_labels[i] = nullptr;
-        }
-    }
-}
-
-// Callback for expiry matrix selection
+// Forward declaration
 static void handleExpirySelection(int selectedIndex, void *user_data)
 {
     auto *state = static_cast<ExpirySelectionState *>(user_data);
     ESP_LOGI(TAG, "User selected index: %d", selectedIndex);
 
-    if (selectedIndex == 5) // "<<" button - go back in time
+    if (selectedIndex == 5) // "<<"
     {
-        // Don't go into the past
         if (state->dayOffset > 0)
-        {
             state->dayOffset -= 7;
-            if (state->dayOffset < 0)
-                state->dayOffset = 0;
-            ESP_LOGI(TAG, "Loading previous set of expiry dates (offset: %d)", state->dayOffset);
-        }
-        else
-        {
-            ESP_LOGI(TAG, "Already at earliest date set");
-        }
-        showExpiryDateSelection(state); // Show previous set of dates
+        showExpiryDateSelection(state);
     }
-    else if (selectedIndex == 6) // ">>" button - go forward in time
+    else if (selectedIndex == 6) // ">>"
     {
         state->dayOffset += 7;
-        ESP_LOGI(TAG, "Loading next set of expiry dates (offset: %d)", state->dayOffset);
-        showExpiryDateSelection(state); // Show next set of dates
+        showExpiryDateSelection(state);
     }
-    else if (selectedIndex == 7) // "X" button - skip expiry
+    else if (selectedIndex == 7) // "X" skip
     {
-        ESP_LOGI(TAG, "User skipped expiry date selection");
-
-        // Free labels when done
-        freeCurrentLabels();
-        // Save product without expiry date
-        xTaskCreate(
-            ProductFetcher::saveProductTask,
-            "save_product",
-            4096, // stack
-            state,
-            4,
-            nullptr);
+        xTaskCreate(ProductFetcher::saveProductTask, "save_product", 8192, state, 4, nullptr);
     }
-    else if (selectedIndex >= 0 && selectedIndex < 6 && selectedIndex != 4) // Valid date selection
+    else if (selectedIndex >= 0 && selectedIndex < 6 && selectedIndex != 4)
     {
-        // Calculate the selected date
         time_t now = time(nullptr);
-        tm *date = localtime(&now);
+        tm date_tm{};
+        localtime_r(&now, &date_tm);
 
-        // Calculate day index (skip position 3 which is newline)
         int dayIndex = (selectedIndex < 3) ? selectedIndex : (selectedIndex - 1);
-        date->tm_mday += state->dayOffset + dayIndex + 1;
-        mktime(date);
+        date_tm.tm_mday += state->dayOffset + dayIndex + 1;
+        mktime(&date_tm);
 
         char expiryDate[16];
-        strftime(expiryDate, sizeof(expiryDate), "%Y-%m-%d", date);
+        strftime(expiryDate, sizeof(expiryDate), "%Y-%m-%d", &date_tm);
         state->product.expiry = expiryDate;
         ESP_LOGI(TAG, "Selected expiry date: %s", state->product.expiry.c_str());
 
-        // Free labels when done
-        freeCurrentLabels();
-
-        // Save product with expiry date
-        xTaskCreate(
-            ProductFetcher::saveProductTask,
-            "save_product",
-            4096, // stack
-            state,
-            4,
-            nullptr);
+        xTaskCreate(ProductFetcher::saveProductTask, "save_product", 8192, state, 4, nullptr);
     }
     else
     {
         LVGLManager::showErrorSnackbar("Invalid selection");
-        ESP_LOGW(TAG, "Invalid selection");
-        showExpiryDateSelection(state); // Show dates again
+        showExpiryDateSelection(state);
     }
+}
+
+static void showExpiryDateSelection(ExpirySelectionState *state)
+{
+    // 9 labels + 1 terminator
+    char **labels = new char *[10];
+
+    time_t now = time(nullptr);
+
+    for (int i = 0; i < 9; ++i)
+    {
+        if (i == 4)
+        {
+            // Row break
+            labels[i] = strdup("\n");
+        }
+        else if (i == 6)
+        {
+            labels[i] = strdup("<<");
+        }
+        else if (i == 7)
+        {
+            labels[i] = strdup(">>");
+        }
+        else if (i == 8)
+        {
+            labels[i] = strdup("X");
+        }
+        else
+        {
+            // Date cells: indices 0,1,2,3,5 → 5 dates
+            tm date_tm{};
+            localtime_r(&now, &date_tm);
+
+            int dayIndex = (i < 4) ? i : (i - 1); // skip the "\n" slot at 4
+            date_tm.tm_mday += state->dayOffset + dayIndex + 1;
+            mktime(&date_tm);
+
+            char buf[16];
+            strftime(buf, sizeof(buf), "%d/%m", &date_tm);
+            labels[i] = strdup(buf);
+        }
+
+        if (!labels[i])
+            labels[i] = strdup("?");
+    }
+
+    labels[9] = nullptr; // terminator
+
+    LVGLManager::updateExpiryMatrixButton(labels);
+    LVGLManager::showExpiryMatrix(handleExpirySelection, state);
 }
 
 void ProductFetcher::saveProductTask(void *arg)
@@ -193,58 +191,10 @@ void ProductFetcher::saveProductTask(void *arg)
         ESP_LOGI("ProductFetcher", "Product saved: %s", state->product.name.c_str());
     }
 
-    delete state;         // clean up here instead
-    vTaskDelete(nullptr); // delete this task
-}
+    // DO NOT delete state here – LVGL still holds pointers into it
+    delete state;
 
-// Helper function to display expiry date selection
-// Remove the global static current_labels[10] array.
-// We will manage memory dynamically and safely.
-
-static void showExpiryDateSelection(ExpirySelectionState *state)
-{
-    // 1. Create a new map on the heap.
-    // We need 10 slots (8 dates/controls + 1 newline + 1 null terminator)
-    char **new_labels = new char *[10];
-
-    for (int i = 0; i < 10; ++i)
-    {
-        if (i == 4)
-        {
-            new_labels[i] = strdup("\n");
-        }
-        else if (i == 6)
-        {
-            new_labels[i] = strdup("<<");
-        }
-        else if (i == 7)
-        {
-            new_labels[i] = strdup(">>");
-        }
-        else if (i == 8)
-        {
-            new_labels[i] = strdup("X");
-        }
-        else
-        {
-            time_t now = time(nullptr);
-            tm *date = localtime(&now);
-            int dayIndex = (i < 3) ? i : (i - 1);
-            date->tm_mday += state->dayOffset + dayIndex + 1;
-            mktime(date);
-
-            char buf[16];
-            strftime(buf, sizeof(buf), "%d/%m", date);
-            new_labels[i] = strdup(buf);
-        }
-    }
-    new_labels[9] = nullptr; // Null terminator for LVGL
-
-    // 2. Pass this entire map to a thread-safe update function
-    LVGLManager::updateExpiryMatrixButton(new_labels);
-
-    // 3. Show the matrix
-    LVGLManager::showExpiryMatrix(handleExpirySelection, state);
+    vTaskDelete(nullptr);
 }
 
 void ProductFetcher::persistTask(void *arg)
@@ -263,24 +213,18 @@ void ProductFetcher::persistTask(void *arg)
             product.category = item.category;
             product.quantity = item.quantity;
 
-            // Check if the category is "Meat & Fish" to prompt for expiry date
             if (product.category == "Meat & Fish")
             {
-                // Create state object for async expiry selection
                 auto *state = new ExpirySelectionState{
-                    product,              // product
-                    0,                    // dayOffset
-                    self->product_service // service
+                    product,               // product
+                    0,                     // dayOffset
+                    self->product_service, // service
                 };
 
-                // Start the expiry selection process (non-blocking)
                 showExpiryDateSelection(state);
-
-                // Task continues immediately - state will be cleaned up in callback
             }
             else
             {
-                // No expiry needed, save immediately
                 if (self->product_service->manageUpdateProduct(product))
                 {
                     ESP_LOGI(TAG, "Product saved: %s", product.name.c_str());
