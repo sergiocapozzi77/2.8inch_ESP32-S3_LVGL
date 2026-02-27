@@ -12,6 +12,9 @@
 static const char *TAG = "LVGL";
 lv_timer_t *LVGLManager::snackbar_timer = nullptr;
 lv_timer_t *LVGLManager::snackbar_error_timer = nullptr;
+// Static member initialization
+void (*LVGLManager::expiry_selection_callback)(int, void *) = nullptr;
+void *LVGLManager::expiry_callback_user_data = nullptr;
 
 void LVGLManager::lvglTickCallback(void *arg)
 {
@@ -207,32 +210,76 @@ void LVGLManager::snackbarErrorAsync(void *arg)
     delete data;
 }
 
-void LVGLManager::updateExpiryMatrixButton(const char *labels[9])
+// Create a struct to pass the matrix data
+struct ExpiryMatrixData
 {
-    if (labels == nullptr)
-        return; // Ensure labels are valid
+    const char **labels;
+    void (*callback)(int, void *);
+    void *user_data;
+};
 
-    // Update the entire button matrix at once
-    lv_btnmatrix_set_map(objects.expiry_matrix, labels);
+void LVGLManager::showExpiryMatrix(void (*callback)(int, void *), void *user_data)
+{
+    // We don't need a wrapper struct if we only pass the callback/data
+    // but for simplicity and thread safety, let's wrap the logic
+    expiry_selection_callback = callback;
+    expiry_callback_user_data = user_data;
+
+    lv_async_call([](void *arg)
+                  {
+        lv_btnmatrix_set_selected_btn(objects.expiry_matrix, LV_BTNMATRIX_BTN_NONE);
+        lv_obj_clear_flag(objects.expiry_matrix, LV_OBJ_FLAG_HIDDEN);
+        
+        // Ensure event callback is only added ONCE or cleared before adding
+        lv_obj_remove_event_cb(objects.expiry_matrix, expiryMatrixEventCallback);
+        lv_obj_add_event_cb(objects.expiry_matrix, expiryMatrixEventCallback, LV_EVENT_VALUE_CHANGED, nullptr); }, nullptr);
 }
 
-int LVGLManager::waitForExpiryMatrixSelection()
+// Add a static variable to LVGLManager to track the active map
+static const char **active_button_map = nullptr;
+
+void LVGLManager::updateExpiryMatrixButton(char **new_labels)
 {
-    // Reset selection state
-    lv_btnmatrix_set_selected_btn(objects.expiry_matrix, LV_BTNMATRIX_BTN_NONE);
+    // Use async to ensure we are in the LVGL task context
+    lv_async_call([](void *arg)
+                  {
+        char **labels = static_cast<char **>(arg);
 
-    // Show expiry matrix
-    lv_obj_clear_flag(objects.expiry_matrix, LV_OBJ_FLAG_HIDDEN);
+        // 1. Get the old map so we can delete it AFTER setting the new one
+        const char **old_map = active_button_map;
 
-    // Wait for user interaction
-    while (lv_btnmatrix_get_selected_btn(objects.expiry_matrix) == LV_BTNMATRIX_BTN_NONE)
-    {
-        lv_timer_handler();
-        vTaskDelay(pdMS_TO_TICKS(10)); // Small delay to avoid busy-waiting
-    }
+        // 2. Set the new map
+        active_button_map = (const char**)labels;
+        lv_btnmatrix_set_map(objects.expiry_matrix, active_button_map);
 
-    // Hide expiry matrix after selection
+        // 3. Now it is safe to delete the old map strings
+        if (old_map != nullptr) {
+            for (int i = 0; old_map[i] != nullptr; i++) {
+                // Don't free the "\n" if it's a literal, but since we used strdup, we free all
+                free((void*)old_map[i]); 
+            }
+            delete[] old_map;
+        } }, new_labels);
+}
+
+void LVGLManager::expiryMatrixEventCallback(lv_event_t *e)
+{
+    lv_obj_t *btn_matrix = lv_event_get_target(e);
+    int selected = lv_btnmatrix_get_selected_btn(btn_matrix);
+
+    // Hide the matrix
     lv_obj_add_flag(objects.expiry_matrix, LV_OBJ_FLAG_HIDDEN);
 
-    return lv_btnmatrix_get_selected_btn(objects.expiry_matrix);
+    // Call the callback with the result and user data
+    if (expiry_selection_callback != nullptr)
+    {
+        void *user_data = expiry_callback_user_data;
+        auto callback = expiry_selection_callback;
+
+        // Clear before calling to allow re-entry
+        expiry_selection_callback = nullptr;
+        expiry_callback_user_data = nullptr;
+
+        callback(selected, user_data);
+    }
 }

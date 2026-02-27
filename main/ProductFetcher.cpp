@@ -10,6 +10,14 @@
 
 static const char *TAG = "ProductFetcher";
 
+// Helper struct to hold state during expiry selection
+struct ExpirySelectionState
+{
+    Product product;
+    int dayOffset;
+    ProductService *service;
+};
+
 ProductFetcher::ProductFetcher(
     QueueHandle_t barcode_q,
     QueueHandle_t product_q,
@@ -47,6 +55,7 @@ void ProductFetcher::task(void *arg)
                 ESP_LOGI(TAG, "Product: %s (%s)",
                          item.name.c_str(),
                          item.category.c_str());
+                LVGLManager::updateStatusLabel("Product found: " + item.name);
 
                 xQueueSend(self->product_queue, item.name.c_str(), 0);
 
@@ -69,6 +78,165 @@ void ProductFetcher::task(void *arg)
     }
 }
 
+// Helper function to create and display expiry date labels
+static void showExpiryDateSelection(ExpirySelectionState *state);
+
+// Callback for expiry matrix selection
+// Callback for expiry matrix selection
+// Static storage for labels to keep them alive while the matrix is shown
+static const char *current_labels[10] = {nullptr};
+
+// Helper function to free old labels
+static void freeCurrentLabels()
+{
+    for (int i = 0; i < 9; ++i)
+    {
+        if (current_labels[i] != nullptr)
+        {
+            delete[] current_labels[i];
+            current_labels[i] = nullptr;
+        }
+    }
+}
+
+// Callback for expiry matrix selection
+static void handleExpirySelection(int selectedIndex, void *user_data)
+{
+    auto *state = static_cast<ExpirySelectionState *>(user_data);
+    ESP_LOGI(TAG, "User selected index: %d", selectedIndex);
+
+    if (selectedIndex == 5) // "<<" button - go back in time
+    {
+        // Don't go into the past
+        if (state->dayOffset > 0)
+        {
+            state->dayOffset -= 7;
+            if (state->dayOffset < 0)
+                state->dayOffset = 0;
+            ESP_LOGI(TAG, "Loading previous set of expiry dates (offset: %d)", state->dayOffset);
+        }
+        else
+        {
+            ESP_LOGI(TAG, "Already at earliest date set");
+        }
+        showExpiryDateSelection(state); // Show previous set of dates
+    }
+    else if (selectedIndex == 6) // ">>" button - go forward in time
+    {
+        state->dayOffset += 7;
+        ESP_LOGI(TAG, "Loading next set of expiry dates (offset: %d)", state->dayOffset);
+        showExpiryDateSelection(state); // Show next set of dates
+    }
+    else if (selectedIndex == 7) // "X" button - skip expiry
+    {
+        ESP_LOGI(TAG, "User skipped expiry date selection");
+
+        // Free labels when done
+        freeCurrentLabels();
+        LVGLManager::updateExpiryMatrixButton(nullptr);
+        // Save product without expiry date
+        if (state->service->manageUpdateProduct(state->product))
+        {
+            ESP_LOGI(TAG, "Product saved: %s", state->product.name.c_str());
+        }
+        else
+        {
+            LVGLManager::showErrorSnackbar("Failed to save product: " + state->product.name);
+            ESP_LOGW(TAG, "Failed to save product: %s", state->product.name.c_str());
+        }
+
+        delete state; // Clean up state
+    }
+    else if (selectedIndex >= 0 && selectedIndex < 6 && selectedIndex != 4) // Valid date selection
+    {
+        // Calculate the selected date
+        time_t now = time(nullptr);
+        tm *date = localtime(&now);
+
+        // Calculate day index (skip position 3 which is newline)
+        int dayIndex = (selectedIndex < 3) ? selectedIndex : (selectedIndex - 1);
+        date->tm_mday += state->dayOffset + dayIndex + 1;
+        mktime(date);
+
+        char expiryDate[16];
+        strftime(expiryDate, sizeof(expiryDate), "%Y-%m-%d", date);
+        state->product.expiry = expiryDate;
+        ESP_LOGI(TAG, "Selected expiry date: %s", state->product.expiry.c_str());
+
+        // Free labels when done
+        freeCurrentLabels();
+
+        // Save product with expiry date
+        if (state->service->manageUpdateProduct(state->product))
+        {
+            ESP_LOGI(TAG, "Product saved: %s", state->product.name.c_str());
+        }
+        else
+        {
+            LVGLManager::showErrorSnackbar("Failed to save product: " + state->product.name);
+            ESP_LOGW(TAG, "Failed to save product: %s", state->product.name.c_str());
+        }
+
+        delete state; // Clean up state
+    }
+    else
+    {
+        LVGLManager::showErrorSnackbar("Invalid selection");
+        ESP_LOGW(TAG, "Invalid selection");
+        showExpiryDateSelection(state); // Show dates again
+    }
+}
+
+// Helper function to display expiry date selection
+// Remove the global static current_labels[10] array.
+// We will manage memory dynamically and safely.
+
+static void showExpiryDateSelection(ExpirySelectionState *state)
+{
+    // 1. Create a new map on the heap.
+    // We need 10 slots (8 dates/controls + 1 newline + 1 null terminator)
+    char **new_labels = new char *[10];
+
+    for (int i = 0; i < 10; ++i)
+    {
+        if (i == 4)
+        {
+            new_labels[i] = strdup("\n");
+        }
+        else if (i == 6)
+        {
+            new_labels[i] = strdup("<<");
+        }
+        else if (i == 7)
+        {
+            new_labels[i] = strdup(">>");
+        }
+        else if (i == 8)
+        {
+            new_labels[i] = strdup("X");
+        }
+        else
+        {
+            time_t now = time(nullptr);
+            tm *date = localtime(&now);
+            int dayIndex = (i < 3) ? i : (i - 1);
+            date->tm_mday += state->dayOffset + dayIndex + 1;
+            mktime(date);
+
+            char buf[16];
+            strftime(buf, sizeof(buf), "%d/%m", date);
+            new_labels[i] = strdup(buf);
+        }
+    }
+    new_labels[9] = nullptr; // Null terminator for LVGL
+
+    // 2. Pass this entire map to a thread-safe update function
+    LVGLManager::updateExpiryMatrixButton(new_labels);
+
+    // 3. Show the matrix
+    LVGLManager::showExpiryMatrix(handleExpirySelection, state);
+}
+
 void ProductFetcher::persistTask(void *arg)
 {
     auto *self = static_cast<ProductFetcher *>(arg);
@@ -88,106 +256,30 @@ void ProductFetcher::persistTask(void *arg)
             // Check if the category is "Meat & Fish" to prompt for expiry date
             if (product.category == "Meat & Fish")
             {
-                bool expirySelected = false;
-                int dayOffset = 0;
+                // Create state object for async expiry selection
+                auto *state = new ExpirySelectionState{
+                    product,              // product
+                    0,                    // dayOffset
+                    self->product_service // service
+                };
 
-                while (!expirySelected)
-                {
-                    // Create labels for the next dates, with "\n" as the 4th label
-                    const char *labels[10];
+                // Start the expiry selection process (non-blocking)
+                showExpiryDateSelection(state);
 
-                    for (int i = 0; i < 9; ++i)
-                    {
-                        if (i == 4)
-                        {
-                            // Insert literal "\n" as the fourth label
-                            char *newlineLabel = new char[4];
-                            strcpy(newlineLabel, "\n");
-                            labels[i] = newlineLabel;
-                            continue;
-                        }
-                        else if (i == 7)
-                        {
-                            // 7th button: ">>" to generate new dates
-                            char *nextLabel = new char[3];
-                            strcpy(nextLabel, ">>");
-                            labels[i] = nextLabel;
-                            continue;
-                        }
-                        else if (i == 8)
-                        {
-                            // 8th button: "X" to skip expiry date
-                            char *skipLabel = new char[2];
-                            strcpy(skipLabel, "X");
-                            labels[i] = skipLabel;
-                            continue;
-                        }
-
-                        time_t now = time(nullptr);
-                        tm *date = localtime(&now);
-                        date->tm_mday += dayOffset + i + 1;
-                        mktime(date);
-
-                        char *label = new char[16];
-                        strftime(label, 16, "%d/%m", date);
-                        labels[i] = label;
-                    }
-
-                    // Null-terminate the array
-                    labels[9] = nullptr;
-
-                    // Update the expiry matrix
-                    LVGLManager::updateExpiryMatrixButton(labels);
-
-                    // Wait for user selection
-                    int selectedIndex = LVGLManager::waitForExpiryMatrixSelection();
-                    ESP_LOGI(TAG, "User selected index: %d", selectedIndex);
-                    if (selectedIndex == 6)
-                    {
-                        // Generate new dates starting from the last date of the previous set
-                        dayOffset += 7; // Move forward by 6 days
-                        ESP_LOGI(TAG, "Loading next set of expiry dates (offset: %d)", dayOffset);
-                    }
-                    else if (selectedIndex == 7)
-                    {
-                        expirySelected = true;
-                        break;
-                    }
-                    else if (selectedIndex >= 0 && selectedIndex < 6)
-                    {
-                        time_t now = time(nullptr);
-                        tm *date = localtime(&now);
-                        date->tm_mday += dayOffset + selectedIndex + 1;
-                        mktime(date);
-
-                        char expiryDate[16];
-                        strftime(expiryDate, sizeof(expiryDate), "%Y-%m-%d", date);
-                        product.expiry = expiryDate;
-                        ESP_LOGI(TAG, "Selected expiry date: %s", product.expiry.c_str());
-                        expirySelected = true;
-                    }
-                    else
-                    {
-                        LVGLManager::showErrorSnackbar("Invalid selection");
-                        ESP_LOGW(TAG, "Invalid selection");
-                    }
-
-                    // Free allocated labels
-                    for (int i = 0; i < 9; ++i)
-                    {
-                        delete[] labels[i];
-                    }
-                }
-            }
-
-            if (self->product_service->manageUpdateProduct(product))
-            {
-                ESP_LOGI(TAG, "Product saved: %s", product.name.c_str());
+                // Task continues immediately - state will be cleaned up in callback
             }
             else
             {
-                LVGLManager::showErrorSnackbar("Failed to save product: " + product.name);
-                ESP_LOGW(TAG, "Failed to save product: %s", product.name.c_str());
+                // No expiry needed, save immediately
+                if (self->product_service->manageUpdateProduct(product))
+                {
+                    ESP_LOGI(TAG, "Product saved: %s", product.name.c_str());
+                }
+                else
+                {
+                    LVGLManager::showErrorSnackbar("Failed to save product: " + product.name);
+                    ESP_LOGW(TAG, "Failed to save product: %s", product.name.c_str());
+                }
             }
         }
     }
@@ -202,6 +294,10 @@ std::string ProductFetcher::toLower(const std::string &s)
 
 std::string ProductFetcher::mapUkSupermarketCategory(cJSON *tagsArray)
 {
+#ifdef DEBUG_MEAT
+    return "Meat & Fish";
+#endif
+
     if (!cJSON_IsArray(tagsArray))
         return "Other";
 
@@ -257,13 +353,14 @@ std::string ProductFetcher::mapUkSupermarketCategory(cJSON *tagsArray)
 
 bool ProductFetcher::fetchProductInfo(const std::string &barcode, ProductCacheItem &out, ProductCache *cache)
 {
-
+#ifndef DEBUG_MEAT
     // Check cache first
     if (cache && cache->contains(barcode))
     {
         LVGLManager::updateStatusLabel("Loading from cache...");
         return cache->get(barcode, out);
     }
+#endif
 
     LVGLManager::updateStatusLabel("Fetching product info...");
 
@@ -271,19 +368,19 @@ bool ProductFetcher::fetchProductInfo(const std::string &barcode, ProductCacheIt
 
     ESP_LOGI(TAG, "Fetching product info: %s", url.c_str());
 
-    // Initialize to zero and assign fields individually to avoid C++ ordering errors
     esp_http_client_config_t config = {};
     config.url = url.c_str();
     config.method = HTTP_METHOD_GET;
     config.timeout_ms = 30000;
     config.crt_bundle_attach = esp_crt_bundle_attach;
-    config.skip_cert_common_name_check = false; // no longer needed
-    config.buffer_size = 4096;                  // Increased slightly for JSON safety
+    config.skip_cert_common_name_check = false;
+    config.buffer_size = 4096;
 
     esp_http_client_handle_t client = esp_http_client_init(&config);
     if (!client)
     {
         ESP_LOGE(TAG, "Failed to init HTTP client");
+        LVGLManager::updateStatusLabel("Failed to init HTTP client");
         return false;
     }
 
@@ -291,6 +388,7 @@ bool ProductFetcher::fetchProductInfo(const std::string &barcode, ProductCacheIt
     if (err != ESP_OK)
     {
         ESP_LOGE(TAG, "Failed to open HTTP connection: %s", esp_err_to_name(err));
+        LVGLManager::updateStatusLabel("Failed to connect to server");
         esp_http_client_cleanup(client);
         return false;
     }
@@ -301,21 +399,23 @@ bool ProductFetcher::fetchProductInfo(const std::string &barcode, ProductCacheIt
     if (status_code != 200)
     {
         ESP_LOGE(TAG, "HTTP error: %d", status_code);
+        LVGLManager::updateStatusLabel("Server returned error: " + std::to_string(status_code));
         esp_http_client_cleanup(client);
         return false;
     }
 
     std::string payload;
-    payload.reserve(4096); // OpenFoodFacts filtered response is tiny
+    payload.reserve(4096);
 
     char buffer[512];
     int bytes_read;
     while ((bytes_read = esp_http_client_read(client, buffer, sizeof(buffer))) > 0)
     {
         payload.append(buffer, bytes_read);
-        if (payload.size() > 8192) // much tighter cap now that fields= is used
+        if (payload.size() > 8192)
         {
             ESP_LOGE(TAG, "Response unexpectedly large");
+            LVGLManager::updateStatusLabel("Response too large");
             esp_http_client_cleanup(client);
             return false;
         }
@@ -334,6 +434,7 @@ bool ProductFetcher::fetchProductInfo(const std::string &barcode, ProductCacheIt
     if (!cJSON_IsNumber(status) || (status->valueint != 1 && status->valueint != 200))
     {
         cJSON_Delete(root);
+        LVGLManager::updateStatusLabel("Product not found");
         return false;
     }
 
@@ -348,11 +449,14 @@ bool ProductFetcher::fetchProductInfo(const std::string &barcode, ProductCacheIt
         out.category = mapUkSupermarketCategory(tags);
         out.barcode = barcode;
 
-        // Add to cache if cache is provided
         if (cache)
         {
             cache->add(out);
         }
+    }
+    else
+    {
+        LVGLManager::updateStatusLabel("Invalid product data");
     }
 
     cJSON_Delete(root);

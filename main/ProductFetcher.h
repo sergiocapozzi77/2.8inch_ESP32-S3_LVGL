@@ -7,6 +7,7 @@
 #include "ProductService.h"
 #include "vars.h"
 
+#define DEBUG_MEAT
 // Product persist queue item (fixed-size for FreeRTOS safety)
 #define MAX_PRODUCT_NAME_LEN 128
 #define MAX_CATEGORY_LEN 64

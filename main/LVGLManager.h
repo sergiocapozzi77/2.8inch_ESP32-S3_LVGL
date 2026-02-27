@@ -21,13 +21,17 @@ public:
     static void showProductSnackbar(const std::string &product, const std::string &category, ProductAction action);
     static void showErrorSnackbar(const std::string &error);
 
-    static void updateExpiryMatrixButton(const char *label[9]);
+    static void updateExpiryMatrixButton(char **new_labels);
     static int waitForExpiryMatrixSelection();
     // Add this public method
     static void updateStatusLabel(const std::string &status);
+    static void showExpiryMatrix(void (*callback)(int selected_index, void *user_data), void *user_data);
 
 private:
-    // Add this private static callback
+    static void expiryMatrixEventCallback(lv_event_t *e);
+    static void (*expiry_selection_callback)(int, void *);
+    static void *expiry_callback_user_data;
+
     static void updateStatusLabelAsync(void *arg);
     static void snackbarAsync(void *arg);
     static void snackbarErrorAsync(void *arg);
