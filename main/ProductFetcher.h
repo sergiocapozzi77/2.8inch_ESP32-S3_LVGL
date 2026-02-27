@@ -29,6 +29,8 @@ public:
 
     esp_err_t start();
 
+    // TaskHandle_t getTaskHandle() const { return task_handle; }
+
 private:
     static void task(void *arg);
     static void persistTask(void *arg);

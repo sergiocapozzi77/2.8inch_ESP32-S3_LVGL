@@ -21,6 +21,10 @@ private:
     // Task objects
     BarcodeReader *barcode_reader = nullptr;
     ProductFetcher *product_fetcher = nullptr;
+    void wakeScreen();
+    bool screen_sleeping = false;
+    bool wake_flag = false;
+    TaskHandle_t mainTaskHandle = nullptr;
 
     // Managers / Services
     WiFiManager wifi_manager;
@@ -35,10 +39,11 @@ private:
     void initTasks();
 
     // Runtime
-    void enterLightSleep();
+    void enterScreenSleep();
     void mainLoop();
 
 public:
+    void wakeScreenFromISR();
     Application() = default;
     ~Application() = default; // Not strictly needed in embedded reset model
 

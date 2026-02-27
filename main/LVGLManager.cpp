@@ -161,6 +161,8 @@ void LVGLManager::snackbarErrorAsync(void *arg)
 
     // Update label
     lv_label_set_text(objects.snackbar_error__action_lbl, data->c_str());
+    lv_label_set_text(objects.snackbar_error__category_lbl, "");
+    lv_label_set_text(objects.snackbar_error__product_lbl, "");
 
     // Make snackbar visible
     lv_obj_clear_flag(objects.snackbar_error, LV_OBJ_FLAG_HIDDEN);
