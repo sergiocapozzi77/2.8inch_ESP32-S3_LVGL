@@ -133,7 +133,6 @@ static void handleExpirySelection(int selectedIndex, void *user_data)
 
         // Free labels when done
         freeCurrentLabels();
-        LVGLManager::updateExpiryMatrixButton(nullptr);
         // Save product without expiry date
         xTaskCreate(
             ProductFetcher::saveProductTask,
@@ -179,7 +178,7 @@ static void handleExpirySelection(int selectedIndex, void *user_data)
     }
 }
 
-static void saveProductTask(void *arg)
+void ProductFetcher::saveProductTask(void *arg)
 {
     auto *state = static_cast<ExpirySelectionState *>(arg);
 

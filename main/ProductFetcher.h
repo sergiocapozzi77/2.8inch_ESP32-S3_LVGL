@@ -27,7 +27,7 @@ public:
         QueueHandle_t product_q,
         ProductCache *cache,
         ProductService *service);
-
+    QueueHandle_t save_queue;
     esp_err_t start();
 
     // TaskHandle_t getTaskHandle() const { return task_handle; }
