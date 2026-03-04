@@ -89,12 +89,12 @@ static void handleExpirySelection(int selectedIndex, void *user_data)
     if (selectedIndex == 5) // "<<"
     {
         if (state->dayOffset > 0)
-            state->dayOffset -= 7;
+            state->dayOffset -= 5;
         showExpiryDateSelection(state);
     }
     else if (selectedIndex == 6) // ">>"
     {
-        state->dayOffset += 7;
+        state->dayOffset += 5;
         showExpiryDateSelection(state);
     }
     else if (selectedIndex == 7) // "X" skip
@@ -206,7 +206,7 @@ void ProductFetcher::persistTask(void *arg)
     {
         if (xQueueReceive(self->persist_queue, &item, portMAX_DELAY))
         {
-            ESP_LOGI(TAG, "Persisting product: %s", item.name);
+            ESP_LOGI(TAG, "Persisting product: %s %s", item.name, item.category);
 
             Product product;
             product.name = item.name;
@@ -249,6 +249,7 @@ std::string ProductFetcher::toLower(const std::string &s)
 std::string ProductFetcher::mapUkSupermarketCategory(cJSON *tagsArray)
 {
 #ifdef DEBUG_MEAT
+    ESP_LOGI(TAG, "DEBUG_MEAT is defined - categorizing as Meat & Fish");
     return "Meat & Fish";
 #endif
 
@@ -330,6 +331,7 @@ bool ProductFetcher::fetchProductInfo(const std::string &barcode, ProductCacheIt
     config.skip_cert_common_name_check = false;
     config.buffer_size = 4096;
 
+    ESP_LOGI(TAG, "Sending client request to OpenFoodFacts");
     esp_http_client_handle_t client = esp_http_client_init(&config);
     if (!client)
     {
@@ -378,11 +380,17 @@ bool ProductFetcher::fetchProductInfo(const std::string &barcode, ProductCacheIt
     esp_http_client_cleanup(client);
 
     if (payload.empty())
+    {
+        LVGLManager::updateStatusLabel("Empty payload");
         return false;
+    }
 
     cJSON *root = cJSON_Parse(payload.c_str());
     if (!root)
+    {
+        LVGLManager::updateStatusLabel("Failed to parse JSON");
         return false;
+    }
 
     cJSON *status = cJSON_GetObjectItem(root, "status");
     if (!cJSON_IsNumber(status) || (status->valueint != 1 && status->valueint != 200))

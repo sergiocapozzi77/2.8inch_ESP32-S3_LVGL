@@ -272,7 +272,7 @@ std::vector<Product> ProductService::getProducts(const std::vector<std::string> 
 
     if (status != 200)
     {
-        ESP_LOGE(TAG, "GET failed: %d", status);
+        ESP_LOGE(TAG, "GET failed: %d, Reason: %s", status, body.c_str());
         return result;
     }
 
