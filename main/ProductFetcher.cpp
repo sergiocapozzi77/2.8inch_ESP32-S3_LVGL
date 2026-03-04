@@ -246,7 +246,7 @@ std::string ProductFetcher::toLower(const std::string &s)
     return out;
 }
 
-std::string ProductFetcher::mapUkSupermarketCategory(cJSON *tagsArray)
+std::string ProductFetcher::mapUkSupermarketCategory(cJSON *tagsArray, const std::string &productName)
 {
 #ifdef DEBUG_MEAT
     ESP_LOGI(TAG, "DEBUG_MEAT is defined - categorizing as Meat & Fish");
@@ -255,6 +255,11 @@ std::string ProductFetcher::mapUkSupermarketCategory(cJSON *tagsArray)
 
     if (!cJSON_IsArray(tagsArray))
         return "Other";
+
+    std::string productNameLow = productName;
+    std::transform(productNameLow.begin(), productNameLow.end(), productNameLow.begin(),
+                   [](unsigned char c)
+                   { return std::tolower(c); });
 
     cJSON *tagItem = nullptr;
     cJSON_ArrayForEach(tagItem, tagsArray)
@@ -268,7 +273,9 @@ std::string ProductFetcher::mapUkSupermarketCategory(cJSON *tagsArray)
             return "Fruit & Veg";
 
         if (t.find("meat") != std::string::npos || t.find("meats") != std::string::npos || t.find("poultry") != std::string::npos || t.find("poultries") != std::string::npos || t.find("beef") != std::string::npos ||
-            t.find("chicken") != std::string::npos || t.find("fish") != std::string::npos || t.find("fishes") != std::string::npos || t.find("seafood") != std::string::npos || t.find("seafoods") != std::string::npos)
+            t.find("chicken") != std::string::npos || t.find("fish") != std::string::npos || t.find("fishes") != std::string::npos || t.find("seafood") != std::string::npos || t.find("seafoods") != std::string::npos ||
+            productNameLow.find("meat") != std::string::npos || productNameLow.find("chicken") != std::string::npos || productNameLow.find("fish") != std::string::npos ||
+            productNameLow.find("pork") != std::string::npos || productNameLow.find("lamb") != std::string::npos || productNameLow.find("sausage") != std::string::npos)
             return "Meat & Fish";
 
         if (t.find("dairy") != std::string::npos || t.find("milk") != std::string::npos || t.find("cheese") != std::string::npos || t.find("cheeses") != std::string::npos ||
@@ -408,7 +415,7 @@ bool ProductFetcher::fetchProductInfo(const std::string &barcode, ProductCacheIt
         out.name = (nameItem && cJSON_IsString(nameItem)) ? nameItem->valuestring : "Unknown";
 
         cJSON *tags = cJSON_GetObjectItem(product, "categories_tags");
-        out.category = mapUkSupermarketCategory(tags);
+        out.category = mapUkSupermarketCategory(tags, out.name);
         out.barcode = barcode;
 
         if (cache)
