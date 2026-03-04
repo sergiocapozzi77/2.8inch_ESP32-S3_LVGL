@@ -41,6 +41,7 @@ private:
     // Runtime
     void enterLightSleep();
     void enterScreenSleep();
+    void enterDeepSleep();
     void mainLoop();
 
 public:

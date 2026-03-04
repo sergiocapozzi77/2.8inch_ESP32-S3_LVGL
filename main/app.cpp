@@ -9,6 +9,7 @@
 #include "ili9341.h"
 #include "sdkconfig.h"
 #include "esp_sleep.h"
+#include "esp_timer.h"
 
 static const char *TAG = "APP";
 
@@ -206,6 +207,67 @@ void Application::wakeScreen()
 }
 
 // ============================================================
+// Deep Sleep Configuration
+// ============================================================
+
+static bool isNightTime()
+{
+    time_t now;
+    struct tm timeinfo;
+    time(&now);
+    localtime_r(&now, &timeinfo);
+
+    int hour = timeinfo.tm_hour;
+    return (hour >= 23 || hour < 8); // Between 11 PM and 8 AM
+}
+
+static bool isWakeTime()
+{
+    time_t now;
+    struct tm timeinfo;
+    time(&now);
+    localtime_r(&now, &timeinfo);
+
+    int hour = timeinfo.tm_hour;
+    return (hour >= 8 && hour < 23); // Between 8 AM and 11 PM
+}
+
+void Application::enterDeepSleep()
+{
+    ESP_LOGI(TAG, "Entering DEEP_SLEEP...");
+
+    // Configure wake source: WAKE_GPIO (RTC-capable) low level
+    ESP_ERROR_CHECK(esp_sleep_enable_ext0_wakeup(WAKE_GPIO, 0)); // wake on low
+
+    // Configure timer wakeup for 8 AM
+    time_t now;
+    struct tm timeinfo;
+    time(&now);
+    localtime_r(&now, &timeinfo);
+
+    if (timeinfo.tm_hour >= 23 || timeinfo.tm_hour < 8)
+    {
+        struct tm wake_time = timeinfo;
+        wake_time.tm_hour = 8;
+        wake_time.tm_min = 0;
+        wake_time.tm_sec = 0;
+
+        if (timeinfo.tm_hour >= 23)
+        {
+            wake_time.tm_mday += 1; // Set to next day
+        }
+
+        time_t wake_timestamp = mktime(&wake_time);
+        int64_t wake_delay_us = (wake_timestamp - now) * 1000000LL;
+
+        ESP_ERROR_CHECK(esp_sleep_enable_timer_wakeup(wake_delay_us));
+    }
+
+    // Enter deep sleep
+    esp_deep_sleep_start();
+}
+
+// ============================================================
 // Main Loop
 // ============================================================
 
@@ -215,6 +277,12 @@ void Application::mainLoop()
 
     while (true)
     {
+        // Check if it's night time and enter deep sleep
+        if (isNightTime())
+        {
+            enterDeepSleep();
+        }
+
         // Barcode activity → wake
         if (uxQueueMessagesWaiting(barcode_queue) > 0)
         {
