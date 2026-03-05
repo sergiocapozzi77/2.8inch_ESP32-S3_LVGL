@@ -45,5 +45,5 @@ private:
     ProductCache *product_cache;
     ProductService *product_service;
     bool fetchProductInfo(const std::string &barcode, ProductCacheItem &out, ProductCache *cache);
-    std::string mapUkSupermarketCategory(cJSON *tagsArray);
+    std::string mapUkSupermarketCategory(cJSON *tagsArray, const std::string &productName);
 };

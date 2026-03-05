@@ -29,8 +29,7 @@ RTC_DATA_ATTR bool woke_from_touch = false;
 enum class PowerState
 {
     ACTIVE,
-    SCREEN_SLEEP,
-    LIGHT_SLEEP
+    SLEEP
 };
 
 static PowerState power_state = PowerState::ACTIVE;
@@ -111,16 +110,16 @@ void Application::initHardware()
 }
 
 // ============================================================
-// Screen Sleep / Wake + Light Sleep
+// Sleep / Wake
 // ============================================================
 
-void Application::enterScreenSleep()
+void Application::enterSleep()
 {
     if (power_state != PowerState::ACTIVE)
         return;
 
-    ESP_LOGI(TAG, "Entering SCREEN_SLEEP...");
-    power_state = PowerState::SCREEN_SLEEP;
+    ESP_LOGI(TAG, "Entering SLEEP...");
+    power_state = PowerState::SLEEP;
     screen_sleeping = true;
 
     // Stop LVGL timers
@@ -143,16 +142,6 @@ void Application::enterScreenSleep()
     if (barcode_reader)
         barcode_reader->off();
 
-    ESP_LOGI(TAG, "SCREEN_SLEEP entered");
-}
-
-void Application::enterLightSleep()
-{
-    if (power_state != PowerState::SCREEN_SLEEP)
-        return;
-
-    ESP_LOGI(TAG, "Entering LIGHT_SLEEP...");
-
     // Configure wake source: GPIO17 (RTC-capable) low level
     // ext0 wakeup: one RTC IO, level-sensitive
     ESP_ERROR_CHECK(esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_ALL));
@@ -164,7 +153,7 @@ void Application::enterLightSleep()
     esp_light_sleep_start();
 
     // Execution resumes here after wake
-    ESP_LOGI(TAG, "Woke from LIGHT_SLEEP");
+    ESP_LOGI(TAG, "Woke from SLEEP");
 }
 
 // Called from ISR — sets a flag, safe for ISR
@@ -306,13 +295,13 @@ void Application::mainLoop()
             wakeScreen();
         }
 
-        // Inactivity → SCREEN_SLEEP
+        // Inactivity → SLEEP
         if (power_state == PowerState::ACTIVE)
         {
             uint32_t inactive = lv_disp_get_inactive_time(NULL);
             if (inactive > SLEEP_TIMEOUT_MS)
             {
-                enterScreenSleep();
+                enterSleep();
             }
         }
 
@@ -334,13 +323,11 @@ void Application::mainLoop()
             ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(5)); // Wait for ISR or timeout
         }
 
-        // LIGHT_SLEEP state:
+        // SLEEP state:
         // - CPU has just resumed from esp_light_sleep_start()
-        // - We wait for wake_flag / barcode / other logic to call wakeScreen()
-        if (power_state == PowerState::LIGHT_SLEEP)
+        // - Fully wake screen after CPU wake
+        if (power_state == PowerState::SLEEP)
         {
-            // Option A: always fully wake screen after CPU wake
-            // So we just call wakeScreen() here.
             wakeScreen();
         }
     }
