@@ -20,6 +20,8 @@ static const char *TAG = "APP";
 #define BACKLIGHT_GPIO GPIO_NUM_45
 #define LCD_SLEEP_DELAY_MS 120
 
+RTC_DATA_ATTR bool woke_from_touch = false;
+
 // ============================================================
 // Power state machine
 // ============================================================
@@ -154,7 +156,7 @@ void Application::enterLightSleep()
     // Configure wake source: GPIO17 (RTC-capable) low level
     // ext0 wakeup: one RTC IO, level-sensitive
     ESP_ERROR_CHECK(esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_ALL));
-    ESP_ERROR_CHECK(esp_sleep_enable_ext0_wakeup(WAKE_GPIO, 0)); // wake on low
+    ESP_ERROR_CHECK(esp_sleep_enable_ext1_wakeup(1ULL << WAKE_GPIO, ESP_EXT1_WAKEUP_ANY_LOW)); // wake on low
 
     power_state = PowerState::LIGHT_SLEEP;
 
@@ -237,7 +239,7 @@ void Application::enterDeepSleep()
     ESP_LOGI(TAG, "Entering DEEP_SLEEP...");
 
     // Configure wake source: WAKE_GPIO (RTC-capable) low level
-    ESP_ERROR_CHECK(esp_sleep_enable_ext0_wakeup(WAKE_GPIO, 0)); // wake on low
+    ESP_ERROR_CHECK(esp_sleep_enable_ext1_wakeup(1ULL << WAKE_GPIO, ESP_EXT1_WAKEUP_ANY_LOW)); // wake on low
 
     // Configure timer wakeup for 8 AM
     time_t now;
@@ -278,9 +280,17 @@ void Application::mainLoop()
     while (true)
     {
         // Check if it's night time and enter deep sleep
-        if (isNightTime())
+        // Only enter deep sleep if:
+        // - It is night time
+        // - AND we did NOT wake from touch
+        if (isNightTime() && !woke_from_touch)
         {
             enterDeepSleep();
+        }
+
+        if (isWakeTime())
+        {
+            woke_from_touch = false;
         }
 
         // Barcode activity → wake
@@ -314,6 +324,7 @@ void Application::mainLoop()
             // wakeScreen() will be called on next loop iteration when wake_flag
             // or barcode activity is detected, or you can call it unconditionally
             // if you want immediate screen wake after CPU wake.
+            wakeScreen();
         }
 
         // ACTIVE → normal LVGL tick + light wait
@@ -348,6 +359,13 @@ void Application::run()
     initHardware();
     initQueues();
     initTasks();
+
+    esp_sleep_wakeup_cause_t cause = esp_sleep_get_wakeup_cause();
+    if (cause == ESP_SLEEP_WAKEUP_EXT0)
+    {
+        ESP_LOGI(TAG, "Woke from deep sleep due to touch");
+        woke_from_touch = true;
+    }
 
     screen_sleeping = false;
     wake_flag = false;
