@@ -147,7 +147,7 @@ void Application::enterSleep()
     ESP_ERROR_CHECK(esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_ALL));
     ESP_ERROR_CHECK(esp_sleep_enable_ext1_wakeup(1ULL << WAKE_GPIO, ESP_EXT1_WAKEUP_ANY_LOW)); // wake on low
 
-    power_state = PowerState::LIGHT_SLEEP;
+    power_state = PowerState::SLEEP;
 
     // Enter light sleep; CPU stops here until wake
     esp_light_sleep_start();
@@ -302,18 +302,8 @@ void Application::mainLoop()
             if (inactive > SLEEP_TIMEOUT_MS)
             {
                 enterSleep();
+                wakeScreen();
             }
-        }
-
-        // SCREEN_SLEEP → LIGHT_SLEEP
-        if (power_state == PowerState::SCREEN_SLEEP)
-        {
-            enterLightSleep();
-            // After this returns, we are in LIGHT_SLEEP state but already woke up.
-            // wakeScreen() will be called on next loop iteration when wake_flag
-            // or barcode activity is detected, or you can call it unconditionally
-            // if you want immediate screen wake after CPU wake.
-            wakeScreen();
         }
 
         // ACTIVE → normal LVGL tick + light wait
