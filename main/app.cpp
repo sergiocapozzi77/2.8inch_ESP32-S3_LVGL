@@ -104,7 +104,6 @@ void Application::initHardware()
 
     // WiFi
     wifi_manager.init(CONFIG_WIFI_SSID, CONFIG_WIFI_PASSWORD);
-    ESP_ERROR_CHECK(esp_wifi_set_ps(WIFI_PS_MIN_MODEM));
 
     ESP_LOGI(TAG, "Hardware initialized");
 }
@@ -172,6 +171,9 @@ void Application::wakeScreen()
     if (power_state == PowerState::ACTIVE)
         return;
 
+    // Record start time
+    int64_t start_time = esp_timer_get_time();
+
     ESP_LOGI(TAG, "Waking screen...");
 
     // LCD wake
@@ -193,6 +195,13 @@ void Application::wakeScreen()
 
     power_state = PowerState::ACTIVE;
     screen_sleeping = false;
+
+    // Record end time and calculate elapsed time
+    int64_t end_time = esp_timer_get_time();
+    int elapsed_time_ms = (end_time - start_time) / 1000; // Convert microseconds to milliseconds
+
+    // Display elapsed time using updateStatusLabel
+    LVGLManager::updateStatusLabel("Wake time: " + std::to_string(elapsed_time_ms) + " ms");
 
     ESP_LOGI(TAG, "Screen awake (ACTIVE)");
 }
@@ -338,7 +347,7 @@ void Application::run()
     initTasks();
 
     esp_sleep_wakeup_cause_t cause = esp_sleep_get_wakeup_cause();
-    if (cause == ESP_SLEEP_WAKEUP_EXT0)
+    if (cause == ESP_SLEEP_WAKEUP_EXT1)
     {
         ESP_LOGI(TAG, "Woke from deep sleep due to touch");
         woke_from_touch = true;

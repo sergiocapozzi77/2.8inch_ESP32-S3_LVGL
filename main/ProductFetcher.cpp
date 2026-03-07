@@ -101,13 +101,13 @@ static void handleExpirySelection(int selectedIndex, void *user_data)
     {
         xTaskCreate(ProductFetcher::saveProductTask, "save_product", 8192, state, 4, nullptr);
     }
-    else if (selectedIndex >= 0 && selectedIndex < 6 && selectedIndex != 4)
+    else if (selectedIndex >= 0 && selectedIndex < 5)
     {
         time_t now = time(nullptr);
         tm date_tm{};
         localtime_r(&now, &date_tm);
 
-        int dayIndex = (selectedIndex < 3) ? selectedIndex : (selectedIndex - 1);
+        int dayIndex = selectedIndex;
         date_tm.tm_mday += state->dayOffset + dayIndex + 1;
         mktime(&date_tm);
 

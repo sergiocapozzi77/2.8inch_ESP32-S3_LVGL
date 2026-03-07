@@ -299,10 +299,10 @@ std::vector<Product> ProductService::getProducts(const std::vector<std::string> 
         cJSON *qtyItem = cJSON_GetObjectItem(item, "quantity");
         cJSON *catItem = cJSON_GetObjectItem(item, "category");
         cJSON *idItem = cJSON_GetObjectItem(item, "$id");
+        cJSON *expiryItem = cJSON_GetObjectItem(item, "expiry");
 
         if (!nameItem || !cJSON_IsString(nameItem) ||
             !qtyItem || !cJSON_IsNumber(qtyItem) ||
-            !catItem || !cJSON_IsString(catItem) ||
             !idItem || !cJSON_IsString(idItem))
         {
             ESP_LOGW(TAG, "Skipping malformed product");
@@ -312,9 +312,9 @@ std::vector<Product> ProductService::getProducts(const std::vector<std::string> 
         Product p;
         p.name = nameItem->valuestring;
         p.quantity = qtyItem->valueint;
-        p.category = catItem->valuestring;
+        p.category = (catItem && cJSON_IsString(catItem)) ? catItem->valuestring : "";
         p.rowId = idItem->valuestring;
-
+        p.expiry = (expiryItem && cJSON_IsString(expiryItem)) ? expiryItem->valuestring : "";
         result.push_back(p);
     }
 
