@@ -84,6 +84,9 @@ void Application::initTasks()
         &product_service);
     ESP_ERROR_CHECK(product_fetcher->start());
 
+    // Task to fetch products expiring today or tomorrow
+    xTaskCreate(Application::fetchExpiringProductsTask, "FetchExpiringProducts", 8192, this, 5, NULL);
+
     ESP_LOGI(TAG, "Tasks started");
 }
 
@@ -358,4 +361,28 @@ void Application::run()
     power_state = PowerState::ACTIVE;
 
     mainLoop();
+}
+
+// Task to fetch products expiring today or tomorrow
+void Application::fetchExpiringProductsTask(void *param)
+{
+    Application *self = (Application *)param;
+
+    while (!self->wifi_manager.isConnected())
+    {
+        vTaskDelay(pdMS_TO_TICKS(1000));
+    }
+
+    ESP_LOGI(TAG, "WiFi connected. Fetching expiring products...");
+
+    // Fetch products expiring today or tomorrow
+    auto products = self->product_service.getExpiringProducts();
+
+    for (const auto &product : products)
+    {
+        ESP_LOGI(TAG, "Expiring Product: %s, Expiry: %s",
+                 product.name.c_str(), product.expiry.c_str());
+    }
+
+    vTaskDelete(NULL);
 }

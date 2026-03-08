@@ -26,24 +26,25 @@ private:
     bool wake_flag = false;
     TaskHandle_t mainTaskHandle = nullptr;
 
-    // Managers / Services
-    WiFiManager wifi_manager;
-    LVGLManager lvgl_manager;
-    ProductCache product_cache;
-    ProductService product_service;
-
-    // Initialization steps
+     // Initialization steps
     void initNVS();
     void initHardware();
     void initQueues();
     void initTasks();
 
+    static void fetchExpiringProductsTask(void *param);
     // Runtime
     void enterSleep();
     void enterDeepSleep();
     void mainLoop();
 
 public:
+    // Managers / Services
+    WiFiManager wifi_manager;
+    LVGLManager lvgl_manager;
+    ProductCache product_cache;
+    ProductService product_service;
+
     void wakeScreenFromISR();
     Application() = default;
     ~Application() = default; // Not strictly needed in embedded reset model

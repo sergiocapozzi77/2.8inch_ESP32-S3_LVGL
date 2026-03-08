@@ -49,8 +49,8 @@ esp_http_client_handle_t ProductService::createHttpClient(const std::string &url
     esp_http_client_config_t cfg = {};
     cfg.url = url.c_str();
     cfg.timeout_ms = 30000;
-    cfg.buffer_size = 49152;
-    cfg.buffer_size_tx = 4096;
+    cfg.buffer_size = 8192;
+    cfg.buffer_size_tx = 2048;
     cfg.skip_cert_common_name_check = false;
 
     esp_http_client_handle_t client = esp_http_client_init(&cfg);
@@ -152,7 +152,7 @@ std::string ProductService::httpPost(const std::string &url, const std::string &
 
     esp_http_client_fetch_headers(client);
     status = esp_http_client_get_status_code(client);
-
+    ESP_LOGI(TAG, "POST Status: %d. Reading response", status);
     std::string response;
     char buffer[1024];
     int bytes_read;
@@ -249,8 +249,9 @@ int ProductService::httpDelete(const std::string &url)
 /* =========================================================
  * BUSINESS LOGIC
  * ========================================================= */
-std::vector<Product> ProductService::getProducts(const std::vector<std::string> &queries)
+std::vector<Product> ProductService::getProducts(const std::vector<std::string> &queries, int &out)
 {
+    out = -1;
     std::vector<Product> result;
 
     std::string url = Endpoint + "/tablesdb/" + DatabaseId +
@@ -320,6 +321,8 @@ std::vector<Product> ProductService::getProducts(const std::vector<std::string> 
 
     cJSON_Delete(root);
     ESP_LOGI(TAG, "Retrieved %d products", result.size());
+
+    out = 0;
     return result;
 }
 
@@ -328,6 +331,7 @@ bool ProductService::manageUpdateProduct(Product &product)
     LVGLManager::updateStatusLabel("Saving product...");
     std::vector<Product> existing;
     const auto mode = get_var_add_or_del();
+    int queryResult;
 
     if (product.expiry.empty())
     {
@@ -336,7 +340,7 @@ bool ProductService::manageUpdateProduct(Product &product)
             "{\"method\":\"equal\",\"attribute\":\"name\",\"values\":[\"" +
             product.name + "\"]}";
 
-        existing = getProducts({q});
+        existing = getProducts({q}, queryResult);
     }
 
     // Case 1: Product exists
@@ -542,4 +546,40 @@ std::string ProductService::generateId(int length)
     }
 
     return id;
+}
+
+std::vector<Product> ProductService::getExpiringProducts()
+{
+    std::vector<Product> result;
+
+    // Get current datetime and tomorrow's datetime in ISO 8601 format
+    time_t now;
+    struct tm timeinfo;
+    time(&now);
+    localtime_r(&now, &timeinfo);
+
+    char today[25], tomorrow[25];
+    strftime(today, sizeof(today), "%Y-%m-%dT%H:%M:%SZ", &timeinfo);
+
+    timeinfo.tm_mday += 1; // Add one day
+    mktime(&timeinfo);     // Normalize the time structure
+    strftime(tomorrow, sizeof(tomorrow), "%Y-%m-%dT23:59:59Z", &timeinfo);
+
+    // Build queries for today and tomorrow
+    std::string queryTomorrow = "{\"method\":\"lessThanEqual\",\"attribute\":\"expiry\",\"values\":[\"" + std::string(tomorrow) + "\"]}";
+
+    // Fetch products
+    int queryResult;
+    result = getProducts({queryTomorrow, queryTomorrow}, queryResult);
+
+    if (queryResult != 0)
+    {
+        ESP_LOGE(TAG, "Failed to fetch expiring products");
+    }
+    else
+    {
+        ESP_LOGI(TAG, "Fetched %d products expiring today or tomorrow", result.size());
+    }
+
+    return result;
 }

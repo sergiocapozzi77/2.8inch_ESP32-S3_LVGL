@@ -21,11 +21,14 @@ public:
     ProductService();
 
     // Public API methods
-    std::vector<Product> getProducts(const std::vector<std::string> &queries = {});
+    std::vector<Product> getProducts(const std::vector<std::string> &queries, int &out);
     bool manageUpdateProduct(Product &product);
     bool addProduct(Product &product);
     bool updateProduct(Product &product);
     bool deleteProduct(Product &product);
+
+    // Fetch products expiring today or tomorrow
+    std::vector<Product> getExpiringProducts();
 
 private:
     void saveProductTask(void *arg);

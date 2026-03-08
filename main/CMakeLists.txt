@@ -8,6 +8,7 @@ idf_component_register(
         LVGLManager.cpp
         ProductFetcher.cpp
         BatteryManager.cpp
+        ExpiryDateSelector.cpp
         product_cache.cpp
         product_cache.cpp
         ui/actions.c

@@ -1,5 +1,6 @@
 #include "ProductFetcher.h"
 #include "BarcodeReader.h"
+#include "ExpiryDateSelector.h"
 #include <cstring>
 #include <string>
 #include <algorithm>
@@ -33,8 +34,8 @@ ProductFetcher::ProductFetcher(
 
 esp_err_t ProductFetcher::start()
 {
-    xTaskCreate(ProductFetcher::task, "product_fetch", 8192, this, 5, nullptr);
-    xTaskCreate(ProductFetcher::persistTask, "product_persist", 8192, this, 4, nullptr);
+    xTaskCreate(ProductFetcher::task, "product_fetch", 16384, this, 5, nullptr);
+    xTaskCreate(ProductFetcher::persistTask, "product_persist", 16384, this, 4, nullptr);
     return ESP_OK;
 }
 
@@ -78,104 +79,6 @@ void ProductFetcher::task(void *arg)
     }
 }
 
-static void showExpiryDateSelection(ExpirySelectionState *state);
-
-// Forward declaration
-static void handleExpirySelection(int selectedIndex, void *user_data)
-{
-    auto *state = static_cast<ExpirySelectionState *>(user_data);
-    ESP_LOGI(TAG, "User selected index: %d", selectedIndex);
-
-    if (selectedIndex == 5) // "<<"
-    {
-        if (state->dayOffset > 0)
-            state->dayOffset -= 5;
-        showExpiryDateSelection(state);
-    }
-    else if (selectedIndex == 6) // ">>"
-    {
-        state->dayOffset += 5;
-        showExpiryDateSelection(state);
-    }
-    else if (selectedIndex == 7) // "X" skip
-    {
-        xTaskCreate(ProductFetcher::saveProductTask, "save_product", 8192, state, 4, nullptr);
-    }
-    else if (selectedIndex >= 0 && selectedIndex < 5)
-    {
-        time_t now = time(nullptr);
-        tm date_tm{};
-        localtime_r(&now, &date_tm);
-
-        int dayIndex = selectedIndex;
-        date_tm.tm_mday += state->dayOffset + dayIndex + 1;
-        mktime(&date_tm);
-
-        char expiryDate[16];
-        strftime(expiryDate, sizeof(expiryDate), "%Y-%m-%d", &date_tm);
-        state->product.expiry = expiryDate;
-        ESP_LOGI(TAG, "Selected expiry date: %s", state->product.expiry.c_str());
-
-        xTaskCreate(ProductFetcher::saveProductTask, "save_product", 8192, state, 4, nullptr);
-    }
-    else
-    {
-        LVGLManager::showErrorSnackbar("Invalid selection");
-        showExpiryDateSelection(state);
-    }
-}
-
-static void showExpiryDateSelection(ExpirySelectionState *state)
-{
-    // 9 labels + 1 terminator
-    char **labels = new char *[10];
-
-    time_t now = time(nullptr);
-
-    for (int i = 0; i < 9; ++i)
-    {
-        if (i == 4)
-        {
-            // Row break
-            labels[i] = strdup("\n");
-        }
-        else if (i == 6)
-        {
-            labels[i] = strdup("<<");
-        }
-        else if (i == 7)
-        {
-            labels[i] = strdup(">>");
-        }
-        else if (i == 8)
-        {
-            labels[i] = strdup("X");
-        }
-        else
-        {
-            // Date cells: indices 0,1,2,3,5 → 5 dates
-            tm date_tm{};
-            localtime_r(&now, &date_tm);
-
-            int dayIndex = (i < 4) ? i : (i - 1); // skip the "\n" slot at 4
-            date_tm.tm_mday += state->dayOffset + dayIndex + 1;
-            mktime(&date_tm);
-
-            char buf[16];
-            strftime(buf, sizeof(buf), "%d/%m", &date_tm);
-            labels[i] = strdup(buf);
-        }
-
-        if (!labels[i])
-            labels[i] = strdup("?");
-    }
-
-    labels[9] = nullptr; // terminator
-
-    LVGLManager::updateExpiryMatrixButton(labels);
-    LVGLManager::showExpiryMatrix(handleExpirySelection, state);
-}
-
 void ProductFetcher::saveProductTask(void *arg)
 {
     auto *state = static_cast<ExpirySelectionState *>(arg);
@@ -215,13 +118,8 @@ void ProductFetcher::persistTask(void *arg)
 
             if (product.category == "Meat & Fish")
             {
-                auto *state = new ExpirySelectionState{
-                    product,               // product
-                    0,                     // dayOffset
-                    self->product_service, // service
-                };
-
-                showExpiryDateSelection(state);
+                ExpiryDateSelector selector(product, self->product_service);
+                selector.show();
             }
             else
             {
