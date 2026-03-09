@@ -73,4 +73,11 @@ void action_screen_loading(lv_event_t *e)
     lv_obj_add_flag(objects.snackbar_error, LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(objects.expiry_matrix, LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(objects.wifi_img, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(objects.expired_pnl, LV_OBJ_FLAG_HIDDEN);
+}
+
+void action_expiry_close_btn_clicked(lv_event_t * e) 
+{
+    ESP_LOGI("actions", "Expiry close button clicked");
+    lv_obj_add_flag(objects.expired_pnl, LV_OBJ_FLAG_HIDDEN);
 }

@@ -85,22 +85,22 @@ void ProductFetcher::persistTask(void *arg)
             product.category = item.category;
             product.quantity = item.quantity;
 
-            if (product.category == "Meat & Fish")
-            {
-                expiryDateSelector.show(product, 0);
-            }
-            else
-            {
-                if (productService.manageUpdateProduct(product))
-                {
-                    ESP_LOGI(TAG, "Product saved: %s", product.name.c_str());
-                }
-                else
-                {
-                    LVGLManager::showErrorSnackbar("Failed to save product: " + product.name);
-                    ESP_LOGW(TAG, "Failed to save product: %s", product.name.c_str());
-                }
-            }
+            // if (product.category == "Meat & Fish")
+            // {
+            expiryDateSelector.show(product, 0);
+            //}
+            /*/ else
+             {
+                 if (productService.manageUpdateProduct(product))
+                 {
+                     ESP_LOGI(TAG, "Product saved: %s", product.name.c_str());
+                 }
+                 else
+                 {
+                     LVGLManager::showErrorSnackbar("Failed to save product: " + product.name);
+                     ESP_LOGW(TAG, "Failed to save product: %s", product.name.c_str());
+                 }
+             }*/
         }
     }
 }

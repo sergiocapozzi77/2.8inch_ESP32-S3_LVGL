@@ -25,6 +25,8 @@ typedef struct _objects_t {
     lv_obj_t *snackbar_error__action_lbl;
     lv_obj_t *snackbar_error__category_lbl;
     lv_obj_t *expiry_matrix;
+    lv_obj_t *expired_pnl;
+    lv_obj_t *expired_lbl;
 } objects_t;
 
 extern objects_t objects;

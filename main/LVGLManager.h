@@ -26,6 +26,7 @@ public:
     // Add this public method
     static void updateStatusLabel(const std::string &status);
     static void showExpiryMatrix(void (*callback)(int selected_index, void *user_data), void *user_data);
+    static void updateExpiredProductsLabel(const std::string &expiredProductsText);
 
 private:
     static void expiryMatrixEventCallback(lv_event_t *e);

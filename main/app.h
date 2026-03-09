@@ -38,6 +38,8 @@ private:
     void enterDeepSleep();
     void mainLoop();
 
+    TaskHandle_t fetchTaskHandle = NULL;
+
 public:
     // Managers / Services
     WiFiManager wifi_manager;

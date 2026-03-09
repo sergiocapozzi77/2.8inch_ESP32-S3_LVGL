@@ -10,6 +10,7 @@
 #include "sdkconfig.h"
 #include "esp_sleep.h"
 #include "esp_timer.h"
+#include <algorithm> // For std::sort
 
 static const char *TAG = "APP";
 
@@ -84,7 +85,7 @@ void Application::initTasks()
     ESP_ERROR_CHECK(product_fetcher->start());
 
     // Task to fetch products expiring today or tomorrow
-    xTaskCreate(Application::fetchExpiringProductsTask, "FetchExpiringProducts", 8192, this, 5, NULL);
+    xTaskCreate(Application::fetchExpiringProductsTask, "FetchExpiringProducts", 8192, this, 5, &fetchTaskHandle);
 
     ESP_LOGI(TAG, "Tasks started");
 }
@@ -143,6 +144,10 @@ void Application::enterSleep()
     if (barcode_reader)
         barcode_reader->off();
 
+    // ✅ Suspend any tasks that access flash before sleeping
+    if (fetchTaskHandle)
+        vTaskSuspend(fetchTaskHandle);
+
     // Configure wake source: GPIO17 (RTC-capable) low level
     // ext0 wakeup: one RTC IO, level-sensitive
     ESP_ERROR_CHECK(esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_ALL));
@@ -152,6 +157,10 @@ void Application::enterSleep()
 
     // Enter light sleep; CPU stops here until wake
     esp_light_sleep_start();
+
+    // ✅ Resume tasks immediately after CPU resumes
+    if (fetchTaskHandle)
+        vTaskResume(fetchTaskHandle);
 
     // Execution resumes here after wake
     ESP_LOGI(TAG, "Woke from SLEEP");
@@ -377,11 +386,58 @@ void Application::fetchExpiringProductsTask(void *param)
     // Fetch products expiring today or tomorrow
     auto products = productService.getExpiringProducts();
 
+    // Sort products by expiry date (oldest first)
+    std::sort(products.begin(), products.end(), [](const auto &a, const auto &b)
+              { return a.expiry < b.expiry; });
+
+    // Get today's and tomorrow's dates
+    time_t now;
+    time(&now);
+    struct tm today_tm;
+    localtime_r(&now, &today_tm);
+
+    // Get today's and tomorrow's dates — use YYYY-MM-DD to match expiry_date
+    char today_str[12], tomorrow_str[12];
+    strftime(today_str, sizeof(today_str), "%Y-%m-%d", &today_tm); // "2026-03-09"
+
+    today_tm.tm_mday += 1;
+    mktime(&today_tm);
+    strftime(tomorrow_str, sizeof(tomorrow_str), "%Y-%m-%d", &today_tm); // "2026-03-10"
+
+    // Build the text for the expired_lbl
+    std::string expiredProductsText;
     for (const auto &product : products)
     {
+        std::string expiry_date = product.expiry.substr(0, 10); // Extract date part only
+
+        // Replace expiry date with "Today" or "Tomorrow" if applicable
+        std::string formatted_date;
+        if (expiry_date == today_str)
+        {
+            formatted_date = "Today";
+        }
+        else if (expiry_date == tomorrow_str)
+        {
+            formatted_date = "Tomorrow";
+        }
+        else
+        {
+            struct tm expiry_tm = {};
+            // ✅ Parse the full date format that expiry_date actually contains
+            strptime(expiry_date.c_str(), "%Y-%m-%d", &expiry_tm);
+
+            char formatted_date_buf[12];
+            strftime(formatted_date_buf, sizeof(formatted_date_buf), "%d-%b", &expiry_tm); // "10-Mar"
+            formatted_date = formatted_date_buf;
+        }
+
+        expiredProductsText += product.name + ", Expiry: " + formatted_date + "\n";
         ESP_LOGI(TAG, "Expiring Product: %s, Expiry: %s",
-                 product.name.c_str(), product.expiry.c_str());
+                 product.name.c_str(), formatted_date.c_str());
     }
 
+    // Use LVGLManager to update the label
+    LVGLManager::updateExpiredProductsLabel(expiredProductsText);
+    self->fetchTaskHandle = NULL;
     vTaskDelete(NULL);
 }

@@ -284,3 +284,23 @@ void LVGLManager::expiryMatrixEventCallback(lv_event_t *e)
         callback(selected, user_data);
     }
 }
+
+void LVGLManager::updateExpiredProductsLabel(const std::string &expiredProductsText)
+{
+    auto updateLabel = [](void *param)
+    {
+        const char *text = static_cast<const char *>(param);
+        lv_label_set_text(objects.expired_lbl, text);
+        free(param); // Free the allocated memory after use
+
+        lv_obj_clear_flag(objects.expired_pnl, LV_OBJ_FLAG_HIDDEN);
+    };
+
+    // Allocate memory for the text and copy it
+    char *textCopy = strdup(expiredProductsText.c_str());
+    if (textCopy)
+    {
+        // Use lv_async_call to update the label in the LVGL thread
+        lv_async_call(updateLabel, textCopy);
+    }
+}
