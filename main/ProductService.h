@@ -50,3 +50,5 @@ private:
     std::string urlEncode(const std::string &s);
     std::string generateId(int length = 12);
 };
+
+extern ProductService productService;

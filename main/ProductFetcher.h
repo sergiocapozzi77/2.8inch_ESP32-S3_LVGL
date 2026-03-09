@@ -7,7 +7,7 @@
 #include "ProductService.h"
 #include "vars.h"
 
-// #define DEBUG_MEAT
+#define DEBUG_MEAT
 //  Product persist queue item (fixed-size for FreeRTOS safety)
 #define MAX_PRODUCT_NAME_LEN 128
 #define MAX_CATEGORY_LEN 64
@@ -25,8 +25,7 @@ public:
     ProductFetcher(
         QueueHandle_t barcode_q,
         QueueHandle_t product_q,
-        ProductCache *cache,
-        ProductService *service);
+        ProductCache *cache);
     QueueHandle_t save_queue;
     esp_err_t start();
 
@@ -43,7 +42,6 @@ private:
 
     static std::string toLower(const std::string &s);
     ProductCache *product_cache;
-    ProductService *product_service;
     bool fetchProductInfo(const std::string &barcode, ProductCacheItem &out, ProductCache *cache);
     std::string mapUkSupermarketCategory(cJSON *tagsArray, const std::string &productName);
 };

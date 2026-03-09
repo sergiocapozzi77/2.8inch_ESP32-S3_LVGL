@@ -10,18 +10,16 @@
 class ExpiryDateSelector
 {
 public:
-    ExpiryDateSelector(Product &product, ProductService *service)
-        : product(product), service(service), dayOffset(0) {}
+    ExpiryDateSelector();
 
-    void show();
+    void show(Product product, int dayOffset);
 
 private:
-    Product &product;
-    ProductService *service;
-    int dayOffset;
-
+    QueueHandle_t save_queue; // Public so it can be accessed
     static void handleSelection(int selectedIndex, void *user_data);
-    void updateLabels(char **labels);
+    void updateLabels(int dayOffset);
+    static void saveTask(void *arg);
 };
 
+extern ExpiryDateSelector expiryDateSelector;
 #endif // EXPIRY_DATE_SELECTOR_H

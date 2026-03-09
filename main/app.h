@@ -26,7 +26,7 @@ private:
     bool wake_flag = false;
     TaskHandle_t mainTaskHandle = nullptr;
 
-     // Initialization steps
+    // Initialization steps
     void initNVS();
     void initHardware();
     void initQueues();
@@ -43,7 +43,6 @@ public:
     WiFiManager wifi_manager;
     LVGLManager lvgl_manager;
     ProductCache product_cache;
-    ProductService product_service;
 
     void wakeScreenFromISR();
     Application() = default;

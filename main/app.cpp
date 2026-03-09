@@ -80,8 +80,7 @@ void Application::initTasks()
     product_fetcher = new ProductFetcher(
         barcode_queue,
         product_queue,
-        &product_cache,
-        &product_service);
+        &product_cache);
     ESP_ERROR_CHECK(product_fetcher->start());
 
     // Task to fetch products expiring today or tomorrow
@@ -376,7 +375,7 @@ void Application::fetchExpiringProductsTask(void *param)
     ESP_LOGI(TAG, "WiFi connected. Fetching expiring products...");
 
     // Fetch products expiring today or tomorrow
-    auto products = self->product_service.getExpiringProducts();
+    auto products = productService.getExpiringProducts();
 
     for (const auto &product : products)
     {

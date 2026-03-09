@@ -1,6 +1,5 @@
 #include "ProductFetcher.h"
 #include "BarcodeReader.h"
-#include "ExpiryDateSelector.h"
 #include <cstring>
 #include <string>
 #include <algorithm>
@@ -8,34 +7,25 @@
 #include "vars.h"
 #include "LVGLManager.h"
 #include "esp_crt_bundle.h"
+#include "ExpiryDateSelector.h"
 
 static const char *TAG = "ProductFetcher";
-
-// Helper struct to hold state during expiry selection
-struct ExpirySelectionState
-{
-    Product product;
-    int dayOffset;
-    ProductService *service;
-};
 
 ProductFetcher::ProductFetcher(
     QueueHandle_t barcode_q,
     QueueHandle_t product_q,
-    ProductCache *cache,
-    ProductService *service)
+    ProductCache *cache)
     : barcode_queue(barcode_q),
       product_queue(product_q),
-      product_cache(cache),
-      product_service(service)
+      product_cache(cache)
 {
     persist_queue = xQueueCreate(8, sizeof(ProductPersistItem));
 }
 
 esp_err_t ProductFetcher::start()
 {
-    xTaskCreate(ProductFetcher::task, "product_fetch", 16384, this, 5, nullptr);
-    xTaskCreate(ProductFetcher::persistTask, "product_persist", 16384, this, 4, nullptr);
+    xTaskCreate(ProductFetcher::task, "product_fetch", 8192, this, 5, nullptr);
+    xTaskCreate(ProductFetcher::persistTask, "product_persist", 8192, this, 4, nullptr);
     return ESP_OK;
 }
 
@@ -79,27 +69,6 @@ void ProductFetcher::task(void *arg)
     }
 }
 
-void ProductFetcher::saveProductTask(void *arg)
-{
-    auto *state = static_cast<ExpirySelectionState *>(arg);
-
-    bool ok = state->service->manageUpdateProduct(state->product);
-
-    if (!ok)
-    {
-        LVGLManager::showErrorSnackbar("Failed to save product: " + state->product.name);
-    }
-    else
-    {
-        ESP_LOGI("ProductFetcher", "Product saved: %s", state->product.name.c_str());
-    }
-
-    // DO NOT delete state here – LVGL still holds pointers into it
-    delete state;
-
-    vTaskDelete(nullptr);
-}
-
 void ProductFetcher::persistTask(void *arg)
 {
     auto *self = static_cast<ProductFetcher *>(arg);
@@ -118,12 +87,11 @@ void ProductFetcher::persistTask(void *arg)
 
             if (product.category == "Meat & Fish")
             {
-                ExpiryDateSelector selector(product, self->product_service);
-                selector.show();
+                expiryDateSelector.show(product, 0);
             }
             else
             {
-                if (self->product_service->manageUpdateProduct(product))
+                if (productService.manageUpdateProduct(product))
                 {
                     ESP_LOGI(TAG, "Product saved: %s", product.name.c_str());
                 }

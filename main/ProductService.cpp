@@ -8,6 +8,8 @@
 #include "vars.h"
 #include "LVGLManager.h"
 
+ProductService productService;
+
 static const char *TAG = "ProductService";
 
 // Configuration - move to Kconfig or NVS
@@ -129,9 +131,9 @@ std::string ProductService::httpPost(const std::string &url, const std::string &
         return {};
     }
 
+    ESP_LOGI(TAG, "POST Body: %d", body.size());
     esp_http_client_set_method(client, HTTP_METHOD_POST);
     esp_http_client_set_header(client, "Content-Type", "application/json");
-
     esp_err_t err = esp_http_client_open(client, body.size());
     if (err != ESP_OK)
     {
@@ -141,6 +143,7 @@ std::string ProductService::httpPost(const std::string &url, const std::string &
         return {};
     }
 
+    ESP_LOGI(TAG, "POST Body write: %d", body.size());
     int bytes_written = esp_http_client_write(client, body.c_str(), body.size());
     if (bytes_written != body.size())
     {
@@ -395,10 +398,16 @@ bool ProductService::manageUpdateProduct(Product &product)
 
 bool ProductService::addProduct(Product &product)
 {
+    ESP_LOGI(TAG, "Adding product: name='%s', qty=%d, category='%s', expiry='%s'",
+             product.name.c_str(), product.quantity,
+             product.category.c_str(), product.expiry.c_str());
+
     std::string url = Endpoint + "/tablesdb/" + DatabaseId +
                       "/tables/" + CollectionId + "/rows";
+    ESP_LOGD(TAG, "POST URL: %s", url.c_str());
 
     std::string rowId = generateId();
+    ESP_LOGD(TAG, "Generated rowId: %s", rowId.c_str());
 
     cJSON *root = cJSON_CreateObject();
     if (!root)
@@ -430,23 +439,31 @@ bool ProductService::addProduct(Product &product)
         return false;
     }
 
+    ESP_LOGD(TAG, "Request payload: %s", json);
+    ESP_LOGI(TAG, "Sending HTTP POST request...");
+
     int status = -1;
     std::string response = httpPost(url, json, status);
 
     cJSON_Delete(root);
     free(json);
 
+    ESP_LOGI(TAG, "HTTP response: status=%d, length=%d", status, response.length());
+
     if (status != 200 && status != 201)
     {
-        ESP_LOGE(TAG, "addProduct failed: %d", status);
+        ESP_LOGE(TAG, "addProduct failed: status=%d, response='%s'",
+                 status, response.c_str());
         return false;
     }
+
+    ESP_LOGD(TAG, "Response body: %s", response.c_str());
 
     // Parse response to get rowId
     cJSON *doc = cJSON_Parse(response.c_str());
     if (!doc)
     {
-        ESP_LOGW(TAG, "Could not parse response");
+        ESP_LOGW(TAG, "Could not parse response JSON");
         return true; // Product might still be created
     }
 
@@ -454,13 +471,19 @@ bool ProductService::addProduct(Product &product)
     if (idItem && cJSON_IsString(idItem))
     {
         product.rowId = idItem->valuestring;
-        ESP_LOGI(TAG, "Product created: %s", product.rowId.c_str());
+        ESP_LOGI(TAG, "Product created successfully: rowId=%s", product.rowId.c_str());
+    }
+    else
+    {
+        ESP_LOGW(TAG, "Response missing '$id' field");
     }
 
     cJSON_Delete(doc);
 
     LVGLManager::updateStatusLabel("Product added");
     LVGLManager::showProductSnackbar(product.name, product.category, ProductAction::Added);
+
+    ESP_LOGI(TAG, "Product addition complete");
     return true;
 }
 
