@@ -18,7 +18,7 @@ ExpiryDateSelector::ExpiryDateSelector()
     save_queue = xQueueCreate(5, sizeof(Product *));
 
     // Create worker task to process the queue
-    xTaskCreate(ExpiryDateSelector::saveTask, "product_save", 32768, 8192, 4, nullptr);
+    xTaskCreate(ExpiryDateSelector::saveTask, "product_save", 8192, this, 4, nullptr);
 }
 
 void ExpiryDateSelector::show(Product product, int dayOffset)
