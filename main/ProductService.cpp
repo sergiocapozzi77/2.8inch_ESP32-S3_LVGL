@@ -593,16 +593,22 @@ std::vector<Product> ProductService::getExpiringProducts()
 
     // Fetch products
     int queryResult;
-    result = getProducts({queryTomorrow, queryTomorrow}, queryResult);
+    int maxRetry = 0;
+    do
+    {
+        result = getProducts({queryTomorrow}, queryResult);
 
-    if (queryResult != 0)
-    {
-        ESP_LOGE(TAG, "Failed to fetch expiring products");
-    }
-    else
-    {
-        ESP_LOGI(TAG, "Fetched %d products expiring today or tomorrow", result.size());
-    }
+        if (queryResult != 0)
+        {
+            ESP_LOGE(TAG, "Failed to fetch expiring products");
+            vTaskDelay(2000 / portTICK_PERIOD_MS); // Wait before retrying
+        }
+        else
+        {
+
+            ESP_LOGI(TAG, "Fetched %d products expiring today or tomorrow", result.size());
+        }
+    } while (queryResult != 0 && maxRetry++ < 3);
 
     return result;
 }

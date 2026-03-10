@@ -682,10 +682,10 @@
             {
               "objID": "54d0e352-cbbb-4930-eba9-173df7bcf192",
               "type": "LVGLPanelWidget",
-              "left": 20,
-              "top": 38,
-              "width": 278,
-              "height": 183,
+              "left": 13,
+              "top": 26,
+              "width": 295,
+              "height": 207,
               "customInputs": [],
               "customOutputs": [],
               "style": {
@@ -711,10 +711,52 @@
               "heightUnit": "px",
               "children": [
                 {
+                  "objID": "ff561b1b-ff56-4b15-d7f3-e816da5ce1e7",
+                  "type": "LVGLLabelWidget",
+                  "left": -2,
+                  "top": -8,
+                  "width": 169,
+                  "height": 16,
+                  "customInputs": [],
+                  "customOutputs": [],
+                  "style": {
+                    "objID": "5b388ce1-6354-4016-ea82-7cb30da42734",
+                    "useStyle": "default",
+                    "conditionalStyles": [],
+                    "childStyles": []
+                  },
+                  "timeline": [],
+                  "eventHandlers": [],
+                  "leftUnit": "px",
+                  "topUnit": "px",
+                  "widthUnit": "content",
+                  "heightUnit": "content",
+                  "children": [],
+                  "widgetFlags": "CLICK_FOCUSABLE|GESTURE_BUBBLE|PRESS_LOCK|SCROLLABLE|SCROLL_CHAIN_HOR|SCROLL_CHAIN_VER|SCROLL_ELASTIC|SCROLL_MOMENTUM|SCROLL_WITH_ARROW|SNAPPABLE",
+                  "hiddenFlagType": "literal",
+                  "clickableFlagType": "literal",
+                  "flagScrollbarMode": "",
+                  "flagScrollDirection": "",
+                  "scrollSnapX": "",
+                  "scrollSnapY": "",
+                  "checkedStateType": "literal",
+                  "disabledStateType": "literal",
+                  "states": "",
+                  "localStyles": {
+                    "objID": "9bec35b2-47dc-41c5-b65f-c27cd9e9a497"
+                  },
+                  "group": "",
+                  "groupIndex": 0,
+                  "text": "Products expiring soon",
+                  "textType": "literal",
+                  "longMode": "WRAP",
+                  "recolor": false
+                },
+                {
                   "objID": "13919cca-ced9-4345-9893-b257fd0c24b0",
                   "type": "LVGLLabelWidget",
-                  "left": -4,
-                  "top": -4,
+                  "left": -2,
+                  "top": 26,
                   "width": 100,
                   "height": 16,
                   "customInputs": [],
@@ -764,8 +806,8 @@
                 {
                   "objID": "e7bd5aff-7a23-4718-c716-70b4530f2de7",
                   "type": "LVGLButtonWidget",
-                  "left": 225,
-                  "top": -11,
+                  "left": 238,
+                  "top": -8,
                   "width": 34,
                   "height": 25,
                   "customInputs": [],
@@ -871,7 +913,14 @@
               "disabledStateType": "literal",
               "states": "",
               "localStyles": {
-                "objID": "23736617-5f72-497e-de7b-7c607e359cba"
+                "objID": "23736617-5f72-497e-de7b-7c607e359cba",
+                "definition": {
+                  "MAIN": {
+                    "DEFAULT": {
+                      "border_color": "#ff0000"
+                    }
+                  }
+                }
               },
               "group": "",
               "groupIndex": 0

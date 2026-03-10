@@ -84,9 +84,6 @@ void Application::initTasks()
         &product_cache);
     ESP_ERROR_CHECK(product_fetcher->start());
 
-    // Task to fetch products expiring today or tomorrow
-    xTaskCreate(Application::fetchExpiringProductsTask, "FetchExpiringProducts", 8192, this, 5, &fetchTaskHandle);
-
     ESP_LOGI(TAG, "Tasks started");
 }
 
@@ -215,6 +212,9 @@ void Application::wakeScreen()
     LVGLManager::updateStatusLabel("Wake time: " + std::to_string(elapsed_time_ms) + " ms");
 
     ESP_LOGI(TAG, "Screen awake (ACTIVE)");
+
+    // Task to fetch products expiring today or tomorrow
+    xTaskCreate(Application::fetchExpiringProductsTask, "FetchExpiringProducts", 8192, this, 5, &fetchTaskHandle);
 }
 
 // ============================================================
@@ -368,6 +368,9 @@ void Application::run()
     wake_flag = false;
     power_state = PowerState::ACTIVE;
 
+    // Task to fetch products expiring today or tomorrow
+    xTaskCreate(Application::fetchExpiringProductsTask, "FetchExpiringProducts", 8192, this, 5, &fetchTaskHandle);
+
     mainLoop();
 }
 
@@ -385,6 +388,13 @@ void Application::fetchExpiringProductsTask(void *param)
 
     // Fetch products expiring today or tomorrow
     auto products = productService.getExpiringProducts();
+    if (products.empty())
+    {
+        ESP_LOGI(TAG, "No products expiring today or tomorrow");
+        self->fetchTaskHandle = NULL;
+        vTaskDelete(NULL);
+        return;
+    }
 
     // Sort products by expiry date (oldest first)
     std::sort(products.begin(), products.end(), [](const auto &a, const auto &b)
@@ -431,7 +441,7 @@ void Application::fetchExpiringProductsTask(void *param)
             formatted_date = formatted_date_buf;
         }
 
-        expiredProductsText += product.name + ", Expiry: " + formatted_date + "\n";
+        expiredProductsText += product.name + " - " + formatted_date + "\n";
         ESP_LOGI(TAG, "Expiring Product: %s, Expiry: %s",
                  product.name.c_str(), formatted_date.c_str());
     }
