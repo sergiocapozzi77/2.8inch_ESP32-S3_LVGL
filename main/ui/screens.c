@@ -153,16 +153,18 @@ void create_screen_main() {
             // expired_pnl
             lv_obj_t *obj = lv_obj_create(parent_obj);
             objects.expired_pnl = obj;
-            lv_obj_set_pos(obj, 13, 26);
-            lv_obj_set_size(obj, 295, 207);
+            lv_obj_set_pos(obj, 5, 26);
+            lv_obj_set_size(obj, 310, 207);
             lv_obj_add_event_cb(obj, action_expiry_close_btn_clicked, LV_EVENT_PRESSED, (void *)0);
             lv_obj_set_scroll_dir(obj, LV_DIR_VER);
             lv_obj_set_style_border_color(obj, lv_color_hex(0xffff0000), LV_PART_MAIN | LV_STATE_DEFAULT);
+            lv_obj_set_style_pad_left(obj, 5, LV_PART_MAIN | LV_STATE_DEFAULT);
+            lv_obj_set_style_pad_right(obj, 5, LV_PART_MAIN | LV_STATE_DEFAULT);
             {
                 lv_obj_t *parent_obj = obj;
                 {
                     lv_obj_t *obj = lv_label_create(parent_obj);
-                    lv_obj_set_pos(obj, -2, -8);
+                    lv_obj_set_pos(obj, 1, -4);
                     lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
                     lv_label_set_text(obj, "Products expiring soon");
                 }
@@ -170,14 +172,14 @@ void create_screen_main() {
                     // expired_lbl
                     lv_obj_t *obj = lv_label_create(parent_obj);
                     objects.expired_lbl = obj;
-                    lv_obj_set_pos(obj, -2, 26);
+                    lv_obj_set_pos(obj, 0, 19);
                     lv_obj_set_size(obj, LV_PCT(100), LV_SIZE_CONTENT);
                     lv_obj_add_event_cb(obj, action_expiry_close_btn_clicked, LV_EVENT_PRESSED, (void *)0);
                     lv_label_set_text(obj, "");
                 }
                 {
                     lv_obj_t *obj = lv_btn_create(parent_obj);
-                    lv_obj_set_pos(obj, 238, -8);
+                    lv_obj_set_pos(obj, 264, -10);
                     lv_obj_set_size(obj, 34, 25);
                     lv_obj_add_event_cb(obj, action_expiry_close_btn_clicked, LV_EVENT_PRESSED, (void *)0);
                     {

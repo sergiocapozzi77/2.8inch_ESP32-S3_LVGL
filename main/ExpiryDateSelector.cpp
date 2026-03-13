@@ -53,6 +53,17 @@ void ExpiryDateSelector::handleSelection(int selectedIndex, void *user_data)
     else if (selectedIndex == 7)
     { // "X" skip - don't save
         ESP_LOGI(TAG, "User skipped expiry selection");
+        // Create heap copy of product (survives state deletion)
+        Product *productCopy = new Product(state->product);
+
+        // Queue the POINTER (not the object itself)
+        if (xQueueSend(expiryDateSelector.save_queue, &productCopy, pdMS_TO_TICKS(100)) != pdTRUE)
+        {
+            ESP_LOGE(TAG, "Failed to queue product for saving");
+            LVGLManager::showErrorSnackbar("Save queue full");
+            delete productCopy; // Clean up if queue fails
+        }
+
         delete state; // Just clean up
     }
     else if (selectedIndex >= 0 && selectedIndex < 5)

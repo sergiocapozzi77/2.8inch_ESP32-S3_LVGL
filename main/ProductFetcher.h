@@ -31,6 +31,7 @@ public:
 
     // TaskHandle_t getTaskHandle() const { return task_handle; }
     static void saveProductTask(void *arg);
+    int fetchProductInfoWithRetry(const std::string &barcode, ProductCacheItem &out, ProductCache *cache);
 
 private:
     static void task(void *arg);
@@ -42,6 +43,6 @@ private:
 
     static std::string toLower(const std::string &s);
     ProductCache *product_cache;
-    bool fetchProductInfo(const std::string &barcode, ProductCacheItem &out, ProductCache *cache);
+    int fetchProductInfo(const std::string &barcode, ProductCacheItem &out, ProductCache *cache, int retry_count);
     std::string mapUkSupermarketCategory(cJSON *tagsArray, const std::string &productName);
 };

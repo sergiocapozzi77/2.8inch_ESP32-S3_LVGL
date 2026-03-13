@@ -8,6 +8,7 @@
 #include "LVGLManager.h"
 #include "esp_crt_bundle.h"
 #include "ExpiryDateSelector.h"
+#include "WiFiManager.h"
 
 static const char *TAG = "ProductFetcher";
 
@@ -29,6 +30,18 @@ esp_err_t ProductFetcher::start()
     return ESP_OK;
 }
 
+static std::string sanitizeBarcode(const char *raw)
+{
+    std::string out;
+    for (const char *p = raw; *p; ++p)
+    {
+        // barcodes are digits only (EAN-13, UPC-A etc.)
+        if (*p >= '0' && *p <= '9')
+            out += *p;
+    }
+    return out;
+}
+
 void ProductFetcher::task(void *arg)
 {
     auto *self = static_cast<ProductFetcher *>(arg);
@@ -39,9 +52,17 @@ void ProductFetcher::task(void *arg)
         if (xQueueReceive(self->barcode_queue, barcode, portMAX_DELAY))
         {
             ESP_LOGI(TAG, "Fetching product info for: %s", barcode);
+            std::string cleanBarcode = sanitizeBarcode(barcode);
+
+            if (cleanBarcode.empty())
+            {
+                ESP_LOGW(TAG, "Barcode empty after sanitization, discarding");
+                continue;
+            }
 
             ProductCacheItem item;
-            if (self->fetchProductInfo(std::string(barcode), item, self->product_cache))
+            int res = self->fetchProductInfoWithRetry(cleanBarcode, item, self->product_cache);
+            if (res > 0)
             {
                 ESP_LOGI(TAG, "Product: %s (%s)",
                          item.name.c_str(),
@@ -59,6 +80,12 @@ void ProductFetcher::task(void *arg)
                 {
                     ESP_LOGW(TAG, "Persist queue full");
                 }
+            }
+            else if (res == 0)
+            {
+                LVGLManager::updateStatusLabel("Product not found");
+                LVGLManager::showErrorSnackbar("Product not found :(");
+                ESP_LOGI(TAG, "Product not found in database");
             }
             else
             {
@@ -179,19 +206,52 @@ std::string ProductFetcher::mapUkSupermarketCategory(cJSON *tagsArray, const std
     return "Other";
 }
 
-bool ProductFetcher::fetchProductInfo(const std::string &barcode, ProductCacheItem &out, ProductCache *cache)
+int ProductFetcher::fetchProductInfoWithRetry(const std::string &barcode, ProductCacheItem &out, ProductCache *cache)
+{
+    const int max_retries = 5;
+
+    for (int attempt = 0; attempt <= max_retries; ++attempt)
+    {
+        int result = fetchProductInfo(barcode, out, cache, attempt);
+        if (result >= 0)
+        {
+            LVGLManager::updateStatusLabel("Returning result: " + std::to_string(result));
+            return result;
+        }
+
+        if (attempt < max_retries)
+        {
+            ESP_LOGW(TAG, "Retrying fetch (%d/%d) for: %s", attempt + 1, max_retries, barcode.c_str());
+            LVGLManager::updateStatusLabel("Retrying fetch...");
+            vTaskDelay(pdMS_TO_TICKS(3000));
+        }
+    }
+
+    LVGLManager::updateStatusLabel("Max retries reached. Failed to fetch product.");
+
+    return -1;
+}
+
+int ProductFetcher::fetchProductInfo(const std::string &barcode, ProductCacheItem &out, ProductCache *cache, int retry_count)
 {
 #ifndef DEBUG_MEAT
     // Check cache first
     if (cache && cache->contains(barcode))
     {
         LVGLManager::updateStatusLabel("Loading from cache...");
-        return cache->get(barcode, out);
+        return cache->get(barcode, out) ? 1 : -1;
     }
 #endif
 
-    LVGLManager::updateStatusLabel("Fetching product info...");
+    while (!WiFiManager::isConnected())
+    {
+        ESP_LOGW(TAG, "Waiting for WiFi...");
+        LVGLManager::updateStatusLabel("Waiting for WiFi...");
+        vTaskDelay(pdMS_TO_TICKS(1000));
+    }
 
+    LVGLManager::updateStatusLabel("Fetching product info x" + std::to_string(retry_count + 1) + "...");
+    vTaskDelay(pdMS_TO_TICKS(50));
     std::string url = "https://world.openfoodfacts.org/api/v0/product/" + barcode + ".json?fields=product_name,categories_tags";
 
     ESP_LOGI(TAG, "Fetching product info: %s", url.c_str());
@@ -202,15 +262,15 @@ bool ProductFetcher::fetchProductInfo(const std::string &barcode, ProductCacheIt
     config.timeout_ms = 30000;
     config.crt_bundle_attach = esp_crt_bundle_attach;
     config.skip_cert_common_name_check = false;
-    config.buffer_size = 4096;
+    config.buffer_size = 512;
 
     ESP_LOGI(TAG, "Sending client request to OpenFoodFacts");
     esp_http_client_handle_t client = esp_http_client_init(&config);
     if (!client)
     {
         ESP_LOGE(TAG, "Failed to init HTTP client");
-        LVGLManager::updateStatusLabel("Failed to init HTTP client");
-        return false;
+        LVGLManager::updateStatusLabel("Failed to init HTTP client: " + std::to_string(esp_get_free_heap_size()));
+        return -1;
     }
 
     esp_err_t err = esp_http_client_open(client, 0);
@@ -219,7 +279,7 @@ bool ProductFetcher::fetchProductInfo(const std::string &barcode, ProductCacheIt
         ESP_LOGE(TAG, "Failed to open HTTP connection: %s", esp_err_to_name(err));
         LVGLManager::updateStatusLabel("Failed to connect to server");
         esp_http_client_cleanup(client);
-        return false;
+        return -1;
     }
 
     int content_length = esp_http_client_fetch_headers(client);
@@ -230,11 +290,11 @@ bool ProductFetcher::fetchProductInfo(const std::string &barcode, ProductCacheIt
         ESP_LOGE(TAG, "HTTP error: %d", status_code);
         LVGLManager::updateStatusLabel("Server returned error: " + std::to_string(status_code));
         esp_http_client_cleanup(client);
-        return false;
+        return -1;
     }
 
     std::string payload;
-    payload.reserve(4096);
+    payload.reserve(1024);
 
     char buffer[512];
     int bytes_read;
@@ -246,7 +306,7 @@ bool ProductFetcher::fetchProductInfo(const std::string &barcode, ProductCacheIt
             ESP_LOGE(TAG, "Response unexpectedly large");
             LVGLManager::updateStatusLabel("Response too large");
             esp_http_client_cleanup(client);
-            return false;
+            return -1;
         }
     }
 
@@ -255,14 +315,14 @@ bool ProductFetcher::fetchProductInfo(const std::string &barcode, ProductCacheIt
     if (payload.empty())
     {
         LVGLManager::updateStatusLabel("Empty payload");
-        return false;
+        return -1;
     }
 
     cJSON *root = cJSON_Parse(payload.c_str());
     if (!root)
     {
         LVGLManager::updateStatusLabel("Failed to parse JSON");
-        return false;
+        return -1;
     }
 
     cJSON *status = cJSON_GetObjectItem(root, "status");
@@ -270,7 +330,7 @@ bool ProductFetcher::fetchProductInfo(const std::string &barcode, ProductCacheIt
     {
         cJSON_Delete(root);
         LVGLManager::updateStatusLabel("Product not found");
-        return false;
+        return 0;
     }
 
     cJSON *product = cJSON_GetObjectItem(root, "product");
@@ -295,5 +355,5 @@ bool ProductFetcher::fetchProductInfo(const std::string &barcode, ProductCacheIt
     }
 
     cJSON_Delete(root);
-    return true;
+    return 1;
 }

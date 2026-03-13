@@ -682,9 +682,9 @@
             {
               "objID": "54d0e352-cbbb-4930-eba9-173df7bcf192",
               "type": "LVGLPanelWidget",
-              "left": 13,
+              "left": 5,
               "top": 26,
-              "width": 295,
+              "width": 310,
               "height": 207,
               "customInputs": [],
               "customOutputs": [],
@@ -713,8 +713,8 @@
                 {
                   "objID": "ff561b1b-ff56-4b15-d7f3-e816da5ce1e7",
                   "type": "LVGLLabelWidget",
-                  "left": -2,
-                  "top": -8,
+                  "left": 1,
+                  "top": -4,
                   "width": 169,
                   "height": 16,
                   "customInputs": [],
@@ -755,8 +755,8 @@
                 {
                   "objID": "13919cca-ced9-4345-9893-b257fd0c24b0",
                   "type": "LVGLLabelWidget",
-                  "left": -2,
-                  "top": 26,
+                  "left": 0,
+                  "top": 19,
                   "width": 100,
                   "height": 16,
                   "customInputs": [],
@@ -806,8 +806,8 @@
                 {
                   "objID": "e7bd5aff-7a23-4718-c716-70b4530f2de7",
                   "type": "LVGLButtonWidget",
-                  "left": 238,
-                  "top": -8,
+                  "left": 264,
+                  "top": -10,
                   "width": 34,
                   "height": 25,
                   "customInputs": [],
@@ -917,7 +917,9 @@
                 "definition": {
                   "MAIN": {
                     "DEFAULT": {
-                      "border_color": "#ff0000"
+                      "border_color": "#ff0000",
+                      "pad_left": 5,
+                      "pad_right": 5
                     }
                   }
                 }

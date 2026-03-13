@@ -10,7 +10,11 @@
 #include "sdkconfig.h"
 #include "esp_sleep.h"
 #include "esp_timer.h"
-#include <algorithm> // For std::sort
+#include "esp_ping.h"       // ← added for WiFi keep-alive
+#include "ping/ping_sock.h" // ← added for WiFi keep-alive
+#include "lwip/inet.h"      // ← added for WiFi keep-alive
+#include "lwip/ip4_addr.h"  // ← added for WiFi keep-alive
+#include <algorithm>        // For std::sort
 
 static const char *TAG = "APP";
 
@@ -21,7 +25,15 @@ static const char *TAG = "APP";
 #define BACKLIGHT_GPIO GPIO_NUM_45
 #define LCD_SLEEP_DELAY_MS 120
 
+// WiFi keep-alive: ping the gateway every 30 s during light sleep.
+// Must be shorter than the AP's idle-client timeout (usually 60–300 s).
+#define WIFI_PING_INTERVAL_US (60ULL * 1000000ULL) // 30 seconds
+#define WIFI_MAX_PING_FAILS 3                      // force reconnect after N misses
+
 RTC_DATA_ATTR bool woke_from_touch = false;
+
+// Ping-fail counter — survives light sleep, resets on deep-sleep reboot
+RTC_DATA_ATTR int wifi_ping_fails = 0;
 
 // ============================================================
 // Power state machine
@@ -109,6 +121,99 @@ void Application::initHardware()
 }
 
 // ============================================================
+// WiFi keep-alive (silent — no peripherals touched)
+// ============================================================
+
+// Ping the default gateway. Returns true on success.
+static bool pingGateway()
+{
+    esp_netif_ip_info_t ip_info;
+    esp_netif_t *netif = esp_netif_get_handle_from_ifkey("WIFI_STA_DEF");
+    if (!netif || esp_netif_get_ip_info(netif, &ip_info) != ESP_OK || ip_info.gw.addr == 0)
+    {
+        ESP_LOGW(TAG, "[Ping] No gateway available");
+        return false;
+    }
+
+    esp_ping_config_t cfg = ESP_PING_DEFAULT_CONFIG();
+    cfg.target_addr.u_addr.ip4.addr = ip_info.gw.addr;
+    cfg.target_addr.type = IPADDR_TYPE_V4;
+    cfg.count = 3;
+    cfg.interval_ms = 200;
+    cfg.timeout_ms = 1000;
+    cfg.task_stack_size = 2048;
+    cfg.task_prio = 2;
+
+    SemaphoreHandle_t done = xSemaphoreCreateBinary();
+
+    esp_ping_callbacks_t cbs = {};
+    cbs.cb_args = &done;
+    cbs.on_ping_end = [](esp_ping_handle_t hdl, void *arg)
+    {
+        xSemaphoreGive(*reinterpret_cast<SemaphoreHandle_t *>(arg));
+    };
+
+    esp_ping_handle_t ping;
+    if (esp_ping_new_session(&cfg, &cbs, &ping) != ESP_OK)
+    {
+        ESP_LOGE(TAG, "[Ping] Failed to create session");
+        vSemaphoreDelete(done);
+        return false;
+    }
+
+    esp_ping_start(ping);
+    xSemaphoreTake(done, pdMS_TO_TICKS(cfg.count * (cfg.interval_ms + cfg.timeout_ms) + 500));
+    esp_ping_stop(ping);
+
+    uint32_t received = 0;
+    esp_ping_get_profile(ping, ESP_PING_PROF_REPLY, &received, sizeof(received));
+    bool success = (received > 0);
+
+    char gw_str[16];
+    esp_ip4addr_ntoa((const esp_ip4_addr_t *)&ip_info.gw.addr, gw_str, sizeof(gw_str));
+    ESP_LOGI(TAG, "[Ping] Gateway %s -> %s (%lu/%d replies)",
+             gw_str, success ? "OK" : "FAIL", received, cfg.count);
+
+    esp_ping_delete_session(ping);
+    vSemaphoreDelete(done);
+    return success;
+}
+
+// Silent WiFi maintenance — called on TIMER wakeups only.
+// No screen, no backlight, no barcode reader is touched here.
+// Reconnection uses esp_wifi_connect() directly — WiFiManager's event handler
+// already auto-reconnects on WIFI_EVENT_STA_DISCONNECTED, so we just nudge it.
+static void silentWifiPing(WiFiManager &wifi_manager)
+{
+    ESP_LOGI(TAG, "[WiFi-KeepAlive] Silent ping cycle");
+
+    if (!wifi_manager.isConnected())
+    {
+        ESP_LOGW(TAG, "[WiFi-KeepAlive] Disconnected — reconnecting silently");
+        esp_wifi_connect(); // event handler will set wifi_connected when IP is obtained
+        vTaskDelay(pdMS_TO_TICKS(3000));
+    }
+
+    if (pingGateway())
+    {
+        wifi_ping_fails = 0;
+    }
+    else
+    {
+        wifi_ping_fails++;
+        ESP_LOGW(TAG, "[WiFi-KeepAlive] Fail streak: %d / %d", wifi_ping_fails, WIFI_MAX_PING_FAILS);
+
+        if (wifi_ping_fails >= WIFI_MAX_PING_FAILS)
+        {
+            ESP_LOGW(TAG, "[WiFi-KeepAlive] Force reconnect after %d failures", wifi_ping_fails);
+            esp_wifi_disconnect(); // triggers WIFI_EVENT_STA_DISCONNECTED → auto-reconnect
+            vTaskDelay(pdMS_TO_TICKS(3000));
+            wifi_ping_fails = 0;
+        }
+    }
+}
+
+// ============================================================
 // Sleep / Wake
 // ============================================================
 
@@ -145,15 +250,40 @@ void Application::enterSleep()
     if (fetchTaskHandle)
         vTaskSuspend(fetchTaskHandle);
 
-    // Configure wake source: GPIO17 (RTC-capable) low level
-    // ext0 wakeup: one RTC IO, level-sensitive
+    // ── WiFi keep-alive light-sleep loop ─────────────────────────────────────
+    // Two wakeup sources compete on every sleep iteration:
+    //   • TIMER → silent WiFi ping, no peripherals touched, loop back to sleep
+    //   • EXT1  → real touch event, break out for full wake
+    // The loop lives here so the main loop never sees timer wakeups at all.
+    // ─────────────────────────────────────────────────────────────────────────
     ESP_ERROR_CHECK(esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_ALL));
-    ESP_ERROR_CHECK(esp_sleep_enable_ext1_wakeup(1ULL << WAKE_GPIO, ESP_EXT1_WAKEUP_ANY_LOW)); // wake on low
 
-    power_state = PowerState::SLEEP;
+    while (true)
+    {
+        // Arm both wakeup sources before every sleep iteration
+        ESP_ERROR_CHECK(esp_sleep_enable_timer_wakeup(WIFI_PING_INTERVAL_US));
+        ESP_ERROR_CHECK(esp_sleep_enable_ext1_wakeup(1ULL << WAKE_GPIO, ESP_EXT1_WAKEUP_ANY_LOW)); // wake on low
 
-    // Enter light sleep; CPU stops here until wake
-    esp_light_sleep_start();
+        ESP_LOGI(TAG, "[Sleep] Light sleep — timer %llus or touch",
+                 WIFI_PING_INTERVAL_US / 1000000ULL);
+
+        // Enter light sleep; CPU stops here until wake
+        esp_light_sleep_start();
+
+        esp_sleep_wakeup_cause_t cause = esp_sleep_get_wakeup_cause();
+
+        if (cause == ESP_SLEEP_WAKEUP_TIMER)
+        {
+            // Timer wakeup: ping WiFi silently, peripherals stay off, go back to sleep
+            ESP_LOGI(TAG, "[Sleep] Timer wakeup — pinging WiFi (peripherals stay OFF)");
+            silentWifiPing(wifi_manager);
+            continue;
+        }
+
+        // EXT1 (touch) or any other cause → exit loop for full peripheral wake
+        ESP_LOGI(TAG, "[Sleep] Non-timer wakeup (cause=%d) — exiting sleep loop", cause);
+        break;
+    }
 
     // ✅ Resume tasks immediately after CPU resumes
     if (fetchTaskHandle)
@@ -385,12 +515,14 @@ void Application::fetchExpiringProductsTask(void *param)
     }
 
     ESP_LOGI(TAG, "WiFi connected. Fetching expiring products...");
+    LVGLManager::updateStatusLabel("Fetching expiring products...");
 
     // Fetch products expiring today or tomorrow
     auto products = productService.getExpiringProducts();
     if (products.empty())
     {
-        ESP_LOGI(TAG, "No products expiring today or tomorrow");
+        ESP_LOGI(TAG, "No products expiring soon");
+        LVGLManager::updateStatusLabel("No products expiring soon");
         self->fetchTaskHandle = NULL;
         vTaskDelete(NULL);
         return;
