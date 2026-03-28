@@ -5,6 +5,7 @@
     "selectedGlobalVariableObject": "[eez.eez-project]:/variables/globalVariables/0",
     "selectedEnumObject": "[eez.eez-project]:/variables/enums/0",
     "selectedStyleObject": "[eez.eez-project]:/lvglStyles/styles/1",
+    "selectedBitmapObject": "[eez.eez-project]:/bitmaps/0",
     "subnavigationSelectedItems": {
       "variables-tab/sub-navigation/selected-item": "Global"
     }
@@ -27,7 +28,7 @@
           },
           {
             "type": "border",
-            "selected": 0,
+            "selected": 2,
             "size": 240,
             "location": "right",
             "children": [
@@ -219,7 +220,8 @@
                   },
                   "icon": "svg:page"
                 }
-              ]
+              ],
+              "active": true
             },
             {
               "type": "row",
@@ -239,8 +241,7 @@
                       "enableClose": false,
                       "icon": "svg:properties"
                     }
-                  ],
-                  "active": true
+                  ]
                 },
                 {
                   "type": "tabset",
@@ -515,6 +516,88 @@
         }
       }
     },
+    "rootDockerSimulator": {
+      "version": 1,
+      "json": {
+        "global": {
+          "splitterSize": 4,
+          "splitterExtra": 4,
+          "tabEnableRename": false,
+          "borderEnableAutoHide": true
+        },
+        "borders": [],
+        "layout": {
+          "type": "row",
+          "id": "#5cc05c37-41f3-4a71-9cff-1af3496258f6",
+          "children": [
+            {
+              "type": "tabset",
+              "id": "#0c47e345-0e56-4853-90b4-ec9fc937c2c1",
+              "weight": 70,
+              "enableDrop": false,
+              "enableDrag": false,
+              "enableClose": false,
+              "enableTabStrip": true,
+              "children": [
+                {
+                  "type": "tab",
+                  "id": "DOCKER_SIMULATOR_PREVIEW",
+                  "name": "Preview",
+                  "component": "dockerSimulatorPreview",
+                  "enableClose": false,
+                  "icon": "material:computer"
+                }
+              ]
+            },
+            {
+              "type": "row",
+              "id": "#12846164-5ff3-4479-bb5c-a84c4df5456b",
+              "weight": 30,
+              "children": [
+                {
+                  "type": "tabset",
+                  "id": "#26b2b9c0-b009-4743-8d66-181d88c8cecc",
+                  "weight": 50,
+                  "enableDrop": false,
+                  "enableDrag": false,
+                  "enableClose": false,
+                  "enableTabStrip": true,
+                  "children": [
+                    {
+                      "type": "tab",
+                      "id": "DOCKER_SIMULATOR_LOGS",
+                      "name": "Build Logs",
+                      "component": "dockerSimulatorLogs",
+                      "enableClose": false,
+                      "icon": "svg:log"
+                    }
+                  ]
+                },
+                {
+                  "type": "tabset",
+                  "id": "#fb8b0cc7-2b68-4255-9839-255bfc5debee",
+                  "weight": 50,
+                  "enableDrop": false,
+                  "enableDrag": false,
+                  "enableClose": false,
+                  "enableTabStrip": true,
+                  "children": [
+                    {
+                      "type": "tab",
+                      "id": "DOCKER_SIMULATOR_PREVIEW_LOGS",
+                      "name": "Preview Logs",
+                      "component": "dockerSimulatorPreviewLogs",
+                      "enableClose": false,
+                      "icon": "svg:log"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
     "bitmaps": {
       "version": 2,
       "json": {
@@ -549,7 +632,8 @@
                       "component": "bitmaps",
                       "enableClose": false
                     }
-                  ]
+                  ],
+                  "active": true
                 },
                 {
                   "type": "tabset",
@@ -1009,7 +1093,9 @@
         "position": 0,
         "secondToPx": 200,
         "scrollLeft": 0
-      }
+      },
+      "selectionFront": {},
+      "selectionBack": {}
     },
     "[eez.eez-project]:/userWidgets/0[flow-state]": {
       "selection": {
@@ -1030,7 +1116,9 @@
         "position": 0,
         "secondToPx": 200,
         "scrollLeft": 0
-      }
+      },
+      "selectionFront": {},
+      "selectionBack": {}
     },
     "[eez.eez-project]:/lvglStyles/styles[tree-state]": {
       "0": {},

@@ -138,12 +138,11 @@ std::string ProductFetcher::toLower(const std::string &s)
     std::transform(out.begin(), out.end(), out.begin(), ::tolower);
     return out;
 }
-
 std::string ProductFetcher::mapUkSupermarketCategory(cJSON *tagsArray, const std::string &productName)
 {
 #ifdef DEBUG_MEAT
-    ESP_LOGI(TAG, "DEBUG_MEAT is defined - categorizing as Meat & Fish");
-    return "Meat & Fish";
+    ESP_LOGI(TAG, "DEBUG_MEAT is defined - categorizing as Meat");
+    return "Meat";
 #endif
 
     if (!cJSON_IsArray(tagsArray))
@@ -162,45 +161,152 @@ std::string ProductFetcher::mapUkSupermarketCategory(cJSON *tagsArray, const std
 
         std::string t = toLower(tagItem->valuestring);
 
-        if (t.find("vegetable") != std::string::npos || t.find("veg") != std::string::npos || t.find("vegetables") != std::string::npos || t.find("fruit") != std::string::npos || t.find("fruits") != std::string::npos)
-            return "Fruit & Veg";
+        // Baby
+        if (t.find("baby") != std::string::npos || t.find("infant") != std::string::npos ||
+            t.find("formula") != std::string::npos || t.find("baby-foods") != std::string::npos ||
+            productNameLow.find("baby") != std::string::npos)
+            return "Baby";
 
-        if (t.find("meat") != std::string::npos || t.find("meats") != std::string::npos || t.find("poultry") != std::string::npos || t.find("poultries") != std::string::npos || t.find("beef") != std::string::npos ||
-            t.find("chicken") != std::string::npos || t.find("fish") != std::string::npos || t.find("fishes") != std::string::npos || t.find("seafood") != std::string::npos || t.find("seafoods") != std::string::npos ||
-            productNameLow.find("meat") != std::string::npos || productNameLow.find("chicken") != std::string::npos || productNameLow.find("fish") != std::string::npos ||
-            productNameLow.find("pork") != std::string::npos || productNameLow.find("lamb") != std::string::npos || productNameLow.find("sausage") != std::string::npos)
-            return "Meat & Fish";
+        // Pet Supplies
+        if (t.find("pet") != std::string::npos || t.find("dog") != std::string::npos ||
+            t.find("cat") != std::string::npos || t.find("pet-foods") != std::string::npos ||
+            productNameLow.find("dog food") != std::string::npos || productNameLow.find("cat food") != std::string::npos)
+            return "Pet Supplies";
 
-        if (t.find("dairy") != std::string::npos || t.find("milk") != std::string::npos || t.find("cheese") != std::string::npos || t.find("cheeses") != std::string::npos ||
-            t.find("yogurt") != std::string::npos || t.find("yogurts") != std::string::npos || t.find("egg") != std::string::npos || t.find("eggs") != std::string::npos)
-            return "Dairy & Eggs";
+        // Wine, Beer & Spirit
+        if (t.find("alcoholic") != std::string::npos || t.find("wine") != std::string::npos ||
+            t.find("wines") != std::string::npos || t.find("beer") != std::string::npos ||
+            t.find("beers") != std::string::npos || t.find("spirit") != std::string::npos ||
+            t.find("spirits") != std::string::npos || t.find("liquor") != std::string::npos ||
+            t.find("alcohol") != std::string::npos || t.find("cider") != std::string::npos)
+            return "Wine, Beer & Spirit";
 
-        if (t.find("bread") != std::string::npos || t.find("breads") != std::string::npos || t.find("bakery") != std::string::npos || t.find("pastry") != std::string::npos || t.find("pastries") != std::string::npos)
+        // Produce (Fruit & Veg)
+        if (t.find("vegetable") != std::string::npos || t.find("veg") != std::string::npos ||
+            t.find("vegetables") != std::string::npos || t.find("fruit") != std::string::npos ||
+            t.find("fruits") != std::string::npos || t.find("produce") != std::string::npos ||
+            t.find("fresh-vegetables") != std::string::npos || t.find("fresh-fruits") != std::string::npos)
+            return "Produce";
+
+        // Meat
+        if (t.find("meat") != std::string::npos || t.find("meats") != std::string::npos ||
+            t.find("poultry") != std::string::npos || t.find("beef") != std::string::npos ||
+            t.find("chicken") != std::string::npos || t.find("pork") != std::string::npos ||
+            t.find("lamb") != std::string::npos || t.find("sausage") != std::string::npos ||
+            t.find("bacon") != std::string::npos || t.find("ham") != std::string::npos ||
+            productNameLow.find("meat") != std::string::npos || productNameLow.find("chicken") != std::string::npos ||
+            productNameLow.find("pork") != std::string::npos || productNameLow.find("lamb") != std::string::npos ||
+            productNameLow.find("sausage") != std::string::npos || productNameLow.find("beef") != std::string::npos)
+            return "Meat";
+
+        // Seafood
+        if (t.find("fish") != std::string::npos || t.find("fishes") != std::string::npos ||
+            t.find("seafood") != std::string::npos || t.find("seafoods") != std::string::npos ||
+            t.find("salmon") != std::string::npos || t.find("tuna") != std::string::npos ||
+            t.find("shellfish") != std::string::npos || t.find("shrimp") != std::string::npos ||
+            productNameLow.find("fish") != std::string::npos || productNameLow.find("salmon") != std::string::npos ||
+            productNameLow.find("seafood") != std::string::npos)
+            return "Seafood";
+
+        // Deli
+        if (t.find("deli") != std::string::npos || t.find("prepared") != std::string::npos ||
+            t.find("ready-meal") != std::string::npos || t.find("charcuterie") != std::string::npos ||
+            t.find("sliced-meats") != std::string::npos || t.find("sandwiches") != std::string::npos)
+            return "Deli";
+
+        // Dairy (without eggs)
+        if (t.find("dairy") != std::string::npos || t.find("milk") != std::string::npos ||
+            t.find("cheese") != std::string::npos || t.find("cheeses") != std::string::npos ||
+            t.find("yogurt") != std::string::npos || t.find("yogurts") != std::string::npos ||
+            t.find("yoghurt") != std::string::npos || t.find("butter") != std::string::npos ||
+            t.find("cream") != std::string::npos)
+        {
+            // Check if it's specifically eggs (move to Breakfast & Cereal)
+            if (t.find("egg") != std::string::npos || t.find("eggs") != std::string::npos)
+                return "Breakfast & Cereal";
+            return "Dairy";
+        }
+
+        // Bakery
+        if (t.find("bread") != std::string::npos || t.find("breads") != std::string::npos ||
+            t.find("bakery") != std::string::npos || t.find("pastry") != std::string::npos ||
+            t.find("pastries") != std::string::npos || t.find("baked-goods") != std::string::npos ||
+            t.find("cake") != std::string::npos || t.find("cakes") != std::string::npos)
             return "Bakery";
 
-        if (t.find("frozen") != std::string::npos)
-            return "Frozen";
+        // Frozen Foods
+        if (t.find("frozen") != std::string::npos || t.find("frozen-foods") != std::string::npos)
+            return "Frozen Foods";
 
-        if (t.find("beverage") != std::string::npos || t.find("beverages") != std::string::npos || t.find("drink") != std::string::npos || t.find("drinks") != std::string::npos || t.find("juice") != std::string::npos || t.find("juices") != std::string::npos || t.find("water") != std::string::npos)
-            return "Drinks";
+        // Beverages (non-alcoholic)
+        if (t.find("beverage") != std::string::npos || t.find("beverages") != std::string::npos ||
+            t.find("drink") != std::string::npos || t.find("drinks") != std::string::npos ||
+            t.find("juice") != std::string::npos || t.find("juices") != std::string::npos ||
+            t.find("water") != std::string::npos || t.find("soda") != std::string::npos ||
+            t.find("soft-drink") != std::string::npos || t.find("tea") != std::string::npos ||
+            t.find("coffee") != std::string::npos)
+            return "Beverages";
 
-        if (t.find("snack") != std::string::npos || t.find("snacks") != std::string::npos || t.find("crisps") != std::string::npos || t.find("chocolate") != std::string::npos || t.find("chocolates") != std::string::npos || t.find("sweets") != std::string::npos)
+        // Snacks
+        if (t.find("snack") != std::string::npos || t.find("snacks") != std::string::npos ||
+            t.find("crisps") != std::string::npos || t.find("chips") != std::string::npos ||
+            t.find("chocolate") != std::string::npos || t.find("chocolates") != std::string::npos ||
+            t.find("sweets") != std::string::npos || t.find("candy") != std::string::npos ||
+            t.find("biscuit") != std::string::npos || t.find("cookies") != std::string::npos)
             return "Snacks";
 
-        if (t.find("cereal") != std::string::npos || t.find("cereals") != std::string::npos || t.find("breakfast") != std::string::npos || t.find("oats") != std::string::npos)
-            return "Cereal & Breakfast";
+        // Breakfast & Cereal
+        if (t.find("cereal") != std::string::npos || t.find("cereals") != std::string::npos ||
+            t.find("breakfast") != std::string::npos || t.find("oats") != std::string::npos ||
+            t.find("porridge") != std::string::npos || t.find("muesli") != std::string::npos ||
+            t.find("granola") != std::string::npos || t.find("egg") != std::string::npos ||
+            t.find("eggs") != std::string::npos)
+            return "Breakfast & Cereal";
 
-        if (t.find("canned") != std::string::npos || t.find("tinned") != std::string::npos || t.find("jarred") != std::string::npos)
-            return "Tins & Jars";
+        // Soups & Canned Food
+        if (t.find("canned") != std::string::npos || t.find("tinned") != std::string::npos ||
+            t.find("jarred") != std::string::npos || t.find("soup") != std::string::npos ||
+            t.find("soups") != std::string::npos || t.find("canned-foods") != std::string::npos)
+            return "Soups & Canned Food";
 
-        if (t.find("pasta") != std::string::npos || t.find("pastas") != std::string::npos || t.find("rice") != std::string::npos || t.find("grains") != std::string::npos || t.find("grain") != std::string::npos || t.find("noodle") != std::string::npos || t.find("noodles") != std::string::npos)
-            return "Pasta, Rice & Grains";
+        // Grains, Pasta & Sides
+        if (t.find("pasta") != std::string::npos || t.find("pastas") != std::string::npos ||
+            t.find("rice") != std::string::npos || t.find("grains") != std::string::npos ||
+            t.find("grain") != std::string::npos || t.find("noodle") != std::string::npos ||
+            t.find("noodles") != std::string::npos || t.find("couscous") != std::string::npos ||
+            t.find("quinoa") != std::string::npos)
+            return "Grains, Pasta & Sides";
 
-        if (t.find("sauce") != std::string::npos || t.find("sauces") != std::string::npos || t.find("condiment") != std::string::npos || t.find("condiments") != std::string::npos || t.find("spread") != std::string::npos || t.find("spreads") != std::string::npos)
-            return "Condiments & Sauces";
+        // Cooking & Baking
+        if (t.find("flour") != std::string::npos || t.find("sugar") != std::string::npos ||
+            t.find("baking") != std::string::npos || t.find("oil") != std::string::npos ||
+            t.find("oils") != std::string::npos || t.find("spice") != std::string::npos ||
+            t.find("spices") != std::string::npos || t.find("seasoning") != std::string::npos ||
+            t.find("herbs") != std::string::npos || t.find("vanilla") != std::string::npos ||
+            t.find("yeast") != std::string::npos || t.find("baking-powder") != std::string::npos)
+            return "Cooking & Baking";
 
-        if (t.find("household") != std::string::npos || t.find("cleaning") != std::string::npos)
-            return "Household";
+        // Condiments & Dressing
+        if (t.find("sauce") != std::string::npos || t.find("sauces") != std::string::npos ||
+            t.find("condiment") != std::string::npos || t.find("condiments") != std::string::npos ||
+            t.find("spread") != std::string::npos || t.find("spreads") != std::string::npos ||
+            t.find("dressing") != std::string::npos || t.find("dressings") != std::string::npos ||
+            t.find("ketchup") != std::string::npos || t.find("mustard") != std::string::npos ||
+            t.find("mayonnaise") != std::string::npos || t.find("vinegar") != std::string::npos)
+            return "Condiments & Dressing";
+
+        // Health & Personal Care
+        if (t.find("health") != std::string::npos || t.find("personal-care") != std::string::npos ||
+            t.find("vitamin") != std::string::npos || t.find("vitamins") != std::string::npos ||
+            t.find("supplement") != std::string::npos || t.find("toiletries") != std::string::npos ||
+            t.find("hygiene") != std::string::npos || t.find("cosmetic") != std::string::npos)
+            return "Health & Personal Care";
+
+        // Household & Cleaning
+        if (t.find("household") != std::string::npos || t.find("cleaning") != std::string::npos ||
+            t.find("detergent") != std::string::npos || t.find("cleaner") != std::string::npos ||
+            t.find("laundry") != std::string::npos || t.find("dishwashing") != std::string::npos)
+            return "Household & Cleaning";
     }
 
     return "Other";
