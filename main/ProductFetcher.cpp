@@ -74,6 +74,7 @@ void ProductFetcher::task(void *arg)
                 ProductPersistItem persist_item{};
                 strncpy(persist_item.name, item.name.c_str(), MAX_PRODUCT_NAME_LEN - 1);
                 strncpy(persist_item.category, item.category.c_str(), MAX_CATEGORY_LEN - 1);
+                strncpy(persist_item.barcode, item.barcode.c_str(), MAX_BARCODE_LEN - 1);
                 persist_item.quantity = 1;
 
                 if (xQueueSend(self->persist_queue, &persist_item, pdMS_TO_TICKS(100)) != pdTRUE)
@@ -111,6 +112,7 @@ void ProductFetcher::persistTask(void *arg)
             product.name = item.name;
             product.category = item.category;
             product.quantity = item.quantity;
+            product.barcode = item.barcode;
 
             // if (product.category == "Meat & Fish")
             // {

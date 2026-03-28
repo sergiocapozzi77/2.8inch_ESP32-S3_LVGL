@@ -13,6 +13,8 @@ struct Product
     std::string category;
     std::string rowId;
     std::string expiry;
+    std::string barcode;
+    std::string user = "sergio";
 };
 
 class ProductService

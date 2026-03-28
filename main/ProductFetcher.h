@@ -11,12 +11,14 @@
 //   Product persist queue item (fixed-size for FreeRTOS safety)
 #define MAX_PRODUCT_NAME_LEN 128
 #define MAX_CATEGORY_LEN 64
+#define MAX_BARCODE_LEN 20
 
 struct ProductPersistItem
 {
     char name[MAX_PRODUCT_NAME_LEN];
     char category[MAX_CATEGORY_LEN];
     int quantity;
+    char barcode[MAX_BARCODE_LEN];
 };
 
 class ProductFetcher

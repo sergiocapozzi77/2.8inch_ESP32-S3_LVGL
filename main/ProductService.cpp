@@ -304,6 +304,7 @@ std::vector<Product> ProductService::getProducts(const std::vector<std::string> 
         cJSON *catItem = cJSON_GetObjectItem(item, "category");
         cJSON *idItem = cJSON_GetObjectItem(item, "$id");
         cJSON *expiryItem = cJSON_GetObjectItem(item, "expiry");
+        cJSON *barcodeItem = cJSON_GetObjectItem(item, "barcode");
 
         if (!nameItem || !cJSON_IsString(nameItem) ||
             !qtyItem || !cJSON_IsNumber(qtyItem) ||
@@ -319,6 +320,7 @@ std::vector<Product> ProductService::getProducts(const std::vector<std::string> 
         p.category = (catItem && cJSON_IsString(catItem)) ? catItem->valuestring : "";
         p.rowId = idItem->valuestring;
         p.expiry = (expiryItem && cJSON_IsString(expiryItem)) ? expiryItem->valuestring : "";
+        p.barcode = (barcodeItem && cJSON_IsString(barcodeItem)) ? barcodeItem->valuestring : "";
         result.push_back(p);
     }
 
@@ -398,9 +400,9 @@ bool ProductService::manageUpdateProduct(Product &product)
 
 bool ProductService::addProduct(Product &product)
 {
-    ESP_LOGI(TAG, "Adding product: name='%s', qty=%d, category='%s', expiry='%s'",
+    ESP_LOGI(TAG, "Adding product: name='%s', qty=%d, category='%s', expiry='%s', 'barcode='%s'",
              product.name.c_str(), product.quantity,
-             product.category.c_str(), product.expiry.c_str());
+             product.category.c_str(), product.expiry.c_str(), product.barcode.c_str());
 
     std::string url = Endpoint + "/tablesdb/" + DatabaseId +
                       "/tables/" + CollectionId + "/rows";
@@ -430,6 +432,8 @@ bool ProductService::addProduct(Product &product)
     cJSON_AddNumberToObject(data, "quantity", product.quantity);
     cJSON_AddStringToObject(data, "category", product.category.c_str());
     cJSON_AddStringToObject(data, "expiry", product.expiry.c_str());
+    cJSON_AddStringToObject(data, "barcode", product.barcode.c_str());
+    cJSON_AddStringToObject(data, "user", product.user.c_str());
 
     char *json = cJSON_PrintUnformatted(root);
     if (!json)
@@ -505,6 +509,7 @@ bool ProductService::updateProduct(Product &product)
 
     cJSON_AddNumberToObject(data, "quantity", product.quantity);
     cJSON_AddStringToObject(data, "category", product.category.c_str());
+    cJSON_AddStringToObject(data, "expiry", product.expiry.c_str());
 
     char *json = cJSON_PrintUnformatted(root);
     if (!json)
