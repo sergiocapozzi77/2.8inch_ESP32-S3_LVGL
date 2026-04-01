@@ -585,6 +585,9 @@ void Application::fetchExpiringProductsAndUpdateCacheTask(void *param)
         vTaskDelay(pdMS_TO_TICKS(1000));
     }
 
+    while (!self->wifi_manager.isSntpSynced())
+        vTaskDelay(pdMS_TO_TICKS(500));
+
     ESP_LOGI(TAG, "WiFi connected. Fetching expiring products...");
 
     self->fetchExpiringProducts();

@@ -598,7 +598,7 @@ std::vector<Product> ProductService::getExpiringProducts()
 
     // Now + 4 months
     struct tm tm4m = timeinfo;
-    tm4m.tm_mon += 4;
+    tm4m.tm_mon -= 4;
     mktime(&tm4m);
     strftime(fourMonths, sizeof(fourMonths), "%Y-%m-%dT23:59:59Z", &tm4m);
 
@@ -607,7 +607,7 @@ std::vector<Product> ProductService::getExpiringProducts()
         "{\"method\":\"lessThanEqual\",\"attribute\":\"expiry\",\"values\":[\"" + std::string(tomorrow) + "\"]}";
 
     std::string queryNonFrozen =
-        "{\"method\":\"equal\",\"attribute\":\"frozen\",\"values\":[false]}";
+        "{\"method\":\"notEqual\",\"attribute\":\"frozen\",\"values\":[true]}";
 
     std::string queryFrozenExpiry =
         "{\"method\":\"lessThanEqual\",\"attribute\":\"expiry\",\"values\":[\"" + std::string(fourMonths) + "\"]}";

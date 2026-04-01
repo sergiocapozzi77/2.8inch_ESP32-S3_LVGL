@@ -14,6 +14,7 @@ static const char *TAG = "WiFiManager";
 
 volatile bool WiFiManager::wifi_connected = false;
 bool WiFiManager::sntp_initialized = false;
+volatile bool WiFiManager::sntp_synced = false;
 
 // ============================================================
 // Public API
@@ -149,7 +150,19 @@ void WiFiManager::startSNTP()
 
     esp_sntp_setoperatingmode(SNTP_OPMODE_POLL);
     esp_sntp_setservername(0, "pool.ntp.org");
+    esp_sntp_set_time_sync_notification_cb(sntpSyncCallback);
     esp_sntp_init();
 
     ESP_LOGI(TAG, "SNTP started");
+}
+
+void WiFiManager::sntpSyncCallback(struct timeval *tv)
+{
+    ESP_LOGI(TAG, "SNTP synced, time: %lld", (long long)tv->tv_sec);
+    sntp_synced = true;
+}
+
+bool WiFiManager::isSntpSynced()
+{
+    return sntp_synced;
 }
