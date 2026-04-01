@@ -32,6 +32,9 @@ public:
     // Fetch products expiring today or tomorrow
     std::vector<Product> getExpiringProducts();
 
+    // Fetch barcodes from Appwrite table
+    std::vector<Product> getBarcodes();
+
 private:
     void saveProductTask(void *arg);
     // Configuration (from secrets.h)

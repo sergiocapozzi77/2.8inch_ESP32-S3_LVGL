@@ -18,8 +18,6 @@ lv_style_t *get_style_red_style_matrix_ITEMS_CHECKED();
 void add_style_red_style_matrix(lv_obj_t *obj);
 void remove_style_red_style_matrix(lv_obj_t *obj);
 
-
-
 #ifdef __cplusplus
 }
 #endif

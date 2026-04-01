@@ -344,7 +344,7 @@ void Application::wakeScreen()
     ESP_LOGI(TAG, "Screen awake (ACTIVE)");
 
     // Task to fetch products expiring today or tomorrow
-    xTaskCreate(Application::fetchExpiringProductsTask, "FetchExpiringProducts", 8192, this, 5, &fetchTaskHandle);
+    xTaskCreate(Application::fetchExpiringProductsAndUpdateCacheTask, "FetchExpiringProducts", 8192, this, 5, &fetchTaskHandle);
 }
 
 // ============================================================
@@ -499,22 +499,14 @@ void Application::run()
     power_state = PowerState::ACTIVE;
 
     // Task to fetch products expiring today or tomorrow
-    xTaskCreate(Application::fetchExpiringProductsTask, "FetchExpiringProducts", 8192, this, 5, &fetchTaskHandle);
+    xTaskCreate(Application::fetchExpiringProductsAndUpdateCacheTask, "FetchExpiringProducts", 8192, this, 5, &fetchTaskHandle);
 
     mainLoop();
 }
 
-// Task to fetch products expiring today or tomorrow
-void Application::fetchExpiringProductsTask(void *param)
+void Application::fetchExpiringProducts()
 {
-    Application *self = (Application *)param;
-
-    while (!self->wifi_manager.isConnected())
-    {
-        vTaskDelay(pdMS_TO_TICKS(1000));
-    }
-
-    ESP_LOGI(TAG, "WiFi connected. Fetching expiring products...");
+    ESP_LOGI(TAG, "Fetching expiring products from Appwrite...");
     LVGLManager::updateStatusLabel("Fetching expiring products...");
 
     // Fetch products expiring today or tomorrow
@@ -523,8 +515,6 @@ void Application::fetchExpiringProductsTask(void *param)
     {
         ESP_LOGI(TAG, "No products expiring soon");
         LVGLManager::updateStatusLabel("No products expiring soon");
-        self->fetchTaskHandle = NULL;
-        vTaskDelete(NULL);
         return;
     }
 
@@ -580,6 +570,45 @@ void Application::fetchExpiringProductsTask(void *param)
 
     // Use LVGLManager to update the label
     LVGLManager::updateExpiredProductsLabel(expiredProductsText);
+}
+
+// Task to fetch products expiring today or tomorrow
+void Application::fetchExpiringProductsAndUpdateCacheTask(void *param)
+{
+    Application *self = (Application *)param;
+
+    while (!self->wifi_manager.isConnected())
+    {
+        vTaskDelay(pdMS_TO_TICKS(1000));
+    }
+
+    ESP_LOGI(TAG, "WiFi connected. Fetching expiring products...");
+
+    self->fetchExpiringProducts();
+    self->updateProductsCache();
+
     self->fetchTaskHandle = NULL;
     vTaskDelete(NULL);
+}
+
+void Application::updateProductsCache()
+{
+    // Fetch barcodes from Appwrite table
+    auto barcodes = productService.getBarcodes();
+
+    // Update product cache with fetched barcodes
+    for (auto &product : barcodes)
+    {
+        ProductCacheItem cachedProduct;
+        auto it = product_cache.get(product.barcode, cachedProduct);
+        if (!it)
+        {
+            continue;
+        }
+
+        cachedProduct.name = product.name;
+        cachedProduct.category = product.category;
+        ESP_LOGI(TAG, "Updated product cache: Barcode=%s, Name=%s, Category=%s",
+                 cachedProduct.barcode.c_str(), cachedProduct.name.c_str(), cachedProduct.category.c_str());
+    }
 }

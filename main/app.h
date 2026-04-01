@@ -32,11 +32,13 @@ private:
     void initQueues();
     void initTasks();
 
-    static void fetchExpiringProductsTask(void *param);
+    static void fetchExpiringProductsAndUpdateCacheTask(void *param);
     // Runtime
     void enterSleep();
     void enterDeepSleep();
     void mainLoop();
+    void fetchExpiringProducts();
+    void updateProductsCache();
 
     TaskHandle_t fetchTaskHandle = NULL;
 

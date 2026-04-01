@@ -18,6 +18,7 @@ idf_component_register(
         ui/vars.c
         ui/ui.c
         ui/ui_image_wifi.c
+        ui/ui_font_ext_montserrat_14.c
     INCLUDE_DIRS
         .
         ui

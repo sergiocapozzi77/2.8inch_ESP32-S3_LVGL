@@ -31,6 +31,7 @@ esp_err_t ProductCache::init()
     initialized = true;
     ESP_LOGI(TAG, "Product cache initialized with %d items (%d bytes)",
              cache_map.size(), getMemoryUsage());
+
     return ESP_OK;
 }
 

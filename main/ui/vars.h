@@ -26,7 +26,6 @@ enum FlowGlobalVariables {
 extern AddOrDelType get_var_add_or_del();
 extern void set_var_add_or_del(AddOrDelType value);
 
-
 #ifdef __cplusplus
 }
 #endif

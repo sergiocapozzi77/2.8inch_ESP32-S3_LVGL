@@ -617,3 +617,60 @@ std::vector<Product> ProductService::getExpiringProducts()
 
     return result;
 }
+
+std::vector<Product> ProductService::getBarcodes()
+{
+    std::vector<Product> result;
+
+    std::string url = Endpoint + "/tablesdb/" + DatabaseId +
+                      "/tables/" + CollectionId + "/rows";
+
+    int status;
+    std::string body = httpGet(url, status);
+
+    if (status != 200)
+    {
+        ESP_LOGE(TAG, "GET failed: %d, Reason: %s", status, body.c_str());
+        return result;
+    }
+
+    cJSON *root = cJSON_Parse(body.c_str());
+    if (!root)
+    {
+        ESP_LOGE(TAG, "JSON parse error");
+        return result;
+    }
+
+    cJSON *rows = cJSON_GetObjectItem(root, "rows");
+    if (!rows || !cJSON_IsArray(rows))
+    {
+        ESP_LOGW(TAG, "No 'rows' array in response");
+        cJSON_Delete(root);
+        return result;
+    }
+
+    cJSON *item;
+    cJSON_ArrayForEach(item, rows)
+    {
+        cJSON *barcodeItem = cJSON_GetObjectItem(item, "barcode");
+        cJSON *nameItem = cJSON_GetObjectItem(item, "name");
+        cJSON *categoryItem = cJSON_GetObjectItem(item, "category");
+
+        if (!barcodeItem || !cJSON_IsString(barcodeItem))
+        {
+            ESP_LOGW(TAG, "Skipping malformed barcode entry");
+            continue;
+        }
+
+        Product p;
+        p.barcode = barcodeItem->valuestring;
+        p.name = (nameItem && cJSON_IsString(nameItem)) ? nameItem->valuestring : "";
+        p.category = (categoryItem && cJSON_IsString(categoryItem)) ? categoryItem->valuestring : "";
+        result.push_back(p);
+    }
+
+    cJSON_Delete(root);
+    ESP_LOGI(TAG, "Retrieved %d barcodes", result.size());
+
+    return result;
+}

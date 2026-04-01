@@ -11,15 +11,22 @@
 #include <string.h>
 
 objects_t objects;
+
+//
+// Event handlers
+//
+
 lv_obj_t *tick_value_change_obj;
-uint32_t active_theme_index = 0;
 
 static void event_handler_checked_cb_main_addremove_matrix(lv_event_t *e) {
-    lv_obj_t *ta = lv_event_get_target(e);
-    if (lv_obj_has_state(ta, LV_STATE_CHECKED)) {
+    if (lv_obj_has_state(lv_event_get_target(e), LV_STATE_CHECKED)) {
         action_product_action(e);
     }
 }
+
+//
+// Screens
+//
 
 void create_screen_main() {
     lv_obj_t *obj = lv_obj_create(0);
@@ -91,6 +98,7 @@ void create_screen_main() {
             lv_btnmatrix_set_one_checked(obj, true);
             lv_obj_add_event_cb(obj, action_add_remove_draw_begin, LV_EVENT_DRAW_PART_BEGIN, (void *)0);
             lv_obj_add_event_cb(obj, event_handler_checked_cb_main_addremove_matrix, LV_EVENT_VALUE_CHANGED, (void *)0);
+            lv_obj_add_event_cb(obj, event_handler_cb_main_addremove_matrix, LV_EVENT_ALL, 0);
             lv_obj_add_flag(obj, LV_OBJ_FLAG_CHECKABLE);
             lv_obj_set_style_border_width(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
             lv_obj_set_style_radius(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -175,6 +183,7 @@ void create_screen_main() {
                     lv_obj_set_pos(obj, 0, 19);
                     lv_obj_set_size(obj, LV_PCT(100), LV_SIZE_CONTENT);
                     lv_obj_add_event_cb(obj, action_expiry_close_btn_clicked, LV_EVENT_PRESSED, (void *)0);
+                    lv_obj_set_style_text_font(obj, &ui_font_ext_montserrat_14, LV_PART_MAIN | LV_STATE_DEFAULT);
                     lv_label_set_text(obj, "");
                 }
                 {
@@ -228,6 +237,7 @@ void create_user_widget_snack_bar(lv_obj_t *parent_obj, int startWidgetIndex) {
             lv_obj_set_pos(obj, 19, 14);
             lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
             add_style_main_style_lbl(obj);
+            lv_obj_set_style_text_font(obj, &ui_font_ext_montserrat_14, LV_PART_MAIN | LV_STATE_DEFAULT);
             lv_label_set_text(obj, "Text");
         }
         {
@@ -237,6 +247,7 @@ void create_user_widget_snack_bar(lv_obj_t *parent_obj, int startWidgetIndex) {
             lv_obj_set_pos(obj, 19, 53);
             lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
             add_style_main_style_lbl(obj);
+            lv_obj_set_style_text_font(obj, &ui_font_ext_montserrat_14, LV_PART_MAIN | LV_STATE_DEFAULT);
             lv_label_set_text(obj, "Text");
         }
         {
@@ -246,6 +257,7 @@ void create_user_widget_snack_bar(lv_obj_t *parent_obj, int startWidgetIndex) {
             lv_obj_set_pos(obj, 19, 34);
             lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
             add_style_main_style_lbl(obj);
+            lv_obj_set_style_text_font(obj, &ui_font_ext_montserrat_14, LV_PART_MAIN | LV_STATE_DEFAULT);
             lv_label_set_text(obj, "Text");
         }
     }
@@ -254,8 +266,6 @@ void create_user_widget_snack_bar(lv_obj_t *parent_obj, int startWidgetIndex) {
 void tick_user_widget_snack_bar(int startWidgetIndex) {
     (void)startWidgetIndex;
 }
-
-
 
 typedef void (*tick_screen_func_t)();
 tick_screen_func_t tick_screen_funcs[] = {
@@ -268,10 +278,95 @@ void tick_screen_by_id(enum ScreensEnum screenId) {
     tick_screen_funcs[screenId - 1]();
 }
 
+//
+// Fonts
+//
+
+ext_font_desc_t fonts[] = {
+    { "ext_montserrat_14", &ui_font_ext_montserrat_14 },
+#if LV_FONT_MONTSERRAT_8
+    { "MONTSERRAT_8", &lv_font_montserrat_8 },
+#endif
+#if LV_FONT_MONTSERRAT_10
+    { "MONTSERRAT_10", &lv_font_montserrat_10 },
+#endif
+#if LV_FONT_MONTSERRAT_12
+    { "MONTSERRAT_12", &lv_font_montserrat_12 },
+#endif
+#if LV_FONT_MONTSERRAT_14
+    { "MONTSERRAT_14", &lv_font_montserrat_14 },
+#endif
+#if LV_FONT_MONTSERRAT_16
+    { "MONTSERRAT_16", &lv_font_montserrat_16 },
+#endif
+#if LV_FONT_MONTSERRAT_18
+    { "MONTSERRAT_18", &lv_font_montserrat_18 },
+#endif
+#if LV_FONT_MONTSERRAT_20
+    { "MONTSERRAT_20", &lv_font_montserrat_20 },
+#endif
+#if LV_FONT_MONTSERRAT_22
+    { "MONTSERRAT_22", &lv_font_montserrat_22 },
+#endif
+#if LV_FONT_MONTSERRAT_24
+    { "MONTSERRAT_24", &lv_font_montserrat_24 },
+#endif
+#if LV_FONT_MONTSERRAT_26
+    { "MONTSERRAT_26", &lv_font_montserrat_26 },
+#endif
+#if LV_FONT_MONTSERRAT_28
+    { "MONTSERRAT_28", &lv_font_montserrat_28 },
+#endif
+#if LV_FONT_MONTSERRAT_30
+    { "MONTSERRAT_30", &lv_font_montserrat_30 },
+#endif
+#if LV_FONT_MONTSERRAT_32
+    { "MONTSERRAT_32", &lv_font_montserrat_32 },
+#endif
+#if LV_FONT_MONTSERRAT_34
+    { "MONTSERRAT_34", &lv_font_montserrat_34 },
+#endif
+#if LV_FONT_MONTSERRAT_36
+    { "MONTSERRAT_36", &lv_font_montserrat_36 },
+#endif
+#if LV_FONT_MONTSERRAT_38
+    { "MONTSERRAT_38", &lv_font_montserrat_38 },
+#endif
+#if LV_FONT_MONTSERRAT_40
+    { "MONTSERRAT_40", &lv_font_montserrat_40 },
+#endif
+#if LV_FONT_MONTSERRAT_42
+    { "MONTSERRAT_42", &lv_font_montserrat_42 },
+#endif
+#if LV_FONT_MONTSERRAT_44
+    { "MONTSERRAT_44", &lv_font_montserrat_44 },
+#endif
+#if LV_FONT_MONTSERRAT_46
+    { "MONTSERRAT_46", &lv_font_montserrat_46 },
+#endif
+#if LV_FONT_MONTSERRAT_48
+    { "MONTSERRAT_48", &lv_font_montserrat_48 },
+#endif
+};
+
+//
+// Color themes
+//
+
+uint32_t active_theme_index = 0;
+
+//
+//
+//
+
 void create_screens() {
+
+// Set default LVGL theme
     lv_disp_t *dispp = lv_disp_get_default();
     lv_theme_t *theme = lv_theme_default_init(dispp, lv_palette_main(LV_PALETTE_BLUE), lv_palette_main(LV_PALETTE_RED), false, LV_FONT_DEFAULT);
     lv_disp_set_theme(dispp, theme);
     
+    // Initialize screens
+    // Create screens
     create_screen_main();
 }
