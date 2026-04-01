@@ -305,6 +305,7 @@ std::vector<Product> ProductService::getProducts(const std::vector<std::string> 
         cJSON *idItem = cJSON_GetObjectItem(item, "$id");
         cJSON *expiryItem = cJSON_GetObjectItem(item, "expiry");
         cJSON *barcodeItem = cJSON_GetObjectItem(item, "barcode");
+        cJSON *frozen = cJSON_GetObjectItem(item, "frozen");
 
         if (!nameItem || !cJSON_IsString(nameItem) ||
             !qtyItem || !cJSON_IsNumber(qtyItem) ||
@@ -321,6 +322,7 @@ std::vector<Product> ProductService::getProducts(const std::vector<std::string> 
         p.rowId = idItem->valuestring;
         p.expiry = (expiryItem && cJSON_IsString(expiryItem)) ? expiryItem->valuestring : "";
         p.barcode = (barcodeItem && cJSON_IsString(barcodeItem)) ? barcodeItem->valuestring : "";
+        p.frozen = (frozen && cJSON_IsBool(frozen)) ? cJSON_IsTrue(frozen) : false;
         result.push_back(p);
     }
 
@@ -580,40 +582,74 @@ std::vector<Product> ProductService::getExpiringProducts()
 {
     std::vector<Product> result;
 
-    // Get current datetime and tomorrow's datetime in ISO 8601 format
+    // --- Build time ranges ---
     time_t now;
     struct tm timeinfo;
     time(&now);
     localtime_r(&now, &timeinfo);
 
-    char today[25], tomorrow[25];
-    strftime(today, sizeof(today), "%Y-%m-%dT%H:%M:%SZ", &timeinfo);
+    char tomorrow[25], fourMonths[25];
 
-    timeinfo.tm_mday += 1; // Add one day
-    mktime(&timeinfo);     // Normalize the time structure
-    strftime(tomorrow, sizeof(tomorrow), "%Y-%m-%dT23:59:59Z", &timeinfo);
+    // Tomorrow (end of day)
+    struct tm tmTomorrow = timeinfo;
+    tmTomorrow.tm_mday += 1;
+    mktime(&tmTomorrow);
+    strftime(tomorrow, sizeof(tomorrow), "%Y-%m-%dT23:59:59Z", &tmTomorrow);
 
-    // Build queries for today and tomorrow
-    std::string queryTomorrow = "{\"method\":\"lessThanEqual\",\"attribute\":\"expiry\",\"values\":[\"" + std::string(tomorrow) + "\"]}";
+    // Now + 4 months
+    struct tm tm4m = timeinfo;
+    tm4m.tm_mon += 4;
+    mktime(&tm4m);
+    strftime(fourMonths, sizeof(fourMonths), "%Y-%m-%dT23:59:59Z", &tm4m);
 
-    // Fetch products
-    int queryResult;
+    // --- Queries ---
+    std::string queryNonFrozenExpiry =
+        "{\"method\":\"lessThanEqual\",\"attribute\":\"expiry\",\"values\":[\"" + std::string(tomorrow) + "\"]}";
+
+    std::string queryNonFrozen =
+        "{\"method\":\"equal\",\"attribute\":\"frozen\",\"values\":[false]}";
+
+    std::string queryFrozenExpiry =
+        "{\"method\":\"lessThanEqual\",\"attribute\":\"expiry\",\"values\":[\"" + std::string(fourMonths) + "\"]}";
+
+    std::string queryFrozen =
+        "{\"method\":\"equal\",\"attribute\":\"frozen\",\"values\":[true]}";
+
+    int queryResult1 = -1;
+    int queryResult2 = -1;
     int maxRetry = 0;
+
+    std::vector<Product> nonFrozen;
+    std::vector<Product> frozen;
+
     do
     {
-        result = getProducts({queryTomorrow}, queryResult);
+        // --- Fetch non-frozen ---
+        nonFrozen = getProducts({queryNonFrozen, queryNonFrozenExpiry}, queryResult1);
 
-        if (queryResult != 0)
+        // --- Fetch frozen ---
+        frozen = getProducts({queryFrozen, queryFrozenExpiry}, queryResult2);
+
+        if (queryResult1 != 0 || queryResult2 != 0)
         {
-            ESP_LOGE(TAG, "Failed to fetch expiring products");
-            vTaskDelay(2000 / portTICK_PERIOD_MS); // Wait before retrying
+            ESP_LOGE(TAG, "Failed fetching expiring products (retry %d)", maxRetry);
+            vTaskDelay(2000 / portTICK_PERIOD_MS);
         }
         else
         {
-
-            ESP_LOGI(TAG, "Fetched %d products expiring today or tomorrow", result.size());
+            break;
         }
-    } while (queryResult != 0 && maxRetry++ < 3);
+
+    } while (++maxRetry < 3);
+
+    // --- Merge results ---
+    if (queryResult1 == 0)
+        result.insert(result.end(), nonFrozen.begin(), nonFrozen.end());
+
+    if (queryResult2 == 0)
+        result.insert(result.end(), frozen.begin(), frozen.end());
+
+    ESP_LOGI(TAG, "Fetched %d expiring products (non-frozen + frozen)", result.size());
 
     return result;
 }
@@ -623,7 +659,7 @@ std::vector<Product> ProductService::getBarcodes()
     std::vector<Product> result;
 
     std::string url = Endpoint + "/tablesdb/" + DatabaseId +
-                      "/tables/" + CollectionId + "/rows";
+                      "/tables/" + BarcodeCollectionId + "/rows";
 
     int status;
     std::string body = httpGet(url, status);

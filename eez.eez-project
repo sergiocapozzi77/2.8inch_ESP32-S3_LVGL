@@ -434,8 +434,8 @@
                   "userData": 0
                 },
                 {
-                  "objID": "97550c60-adfb-462c-c758-7d9684b2210b",
-                  "eventName": "CHECKED",
+                  "objID": "2c016194-5ea4-4a16-e18c-abeb0b9a1d3e",
+                  "eventName": "CLICKED",
                   "handlerType": "action",
                   "action": "ProductAction",
                   "userData": 0

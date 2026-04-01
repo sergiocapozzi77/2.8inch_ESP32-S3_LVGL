@@ -15,6 +15,7 @@ struct Product
     std::string expiry;
     std::string barcode;
     std::string user = "sergio";
+    bool frozen = false;
 };
 
 class ProductService
@@ -43,6 +44,7 @@ private:
     const std::string ProjectId = "6954045e003c75c1c3bf";
     const std::string DatabaseId = "695404ac0021bf7d9707";
     const std::string CollectionId = "products";
+    const std::string BarcodeCollectionId = "barcodes";
 
     // HTTP helper methods
     esp_http_client_handle_t createHttpClient(const std::string &url);

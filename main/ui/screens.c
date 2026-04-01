@@ -18,12 +18,6 @@ objects_t objects;
 
 lv_obj_t *tick_value_change_obj;
 
-static void event_handler_checked_cb_main_addremove_matrix(lv_event_t *e) {
-    if (lv_obj_has_state(lv_event_get_target(e), LV_STATE_CHECKED)) {
-        action_product_action(e);
-    }
-}
-
 //
 // Screens
 //
@@ -97,8 +91,7 @@ void create_screen_main() {
             lv_btnmatrix_set_ctrl_map(obj, ctrl_map);
             lv_btnmatrix_set_one_checked(obj, true);
             lv_obj_add_event_cb(obj, action_add_remove_draw_begin, LV_EVENT_DRAW_PART_BEGIN, (void *)0);
-            lv_obj_add_event_cb(obj, event_handler_checked_cb_main_addremove_matrix, LV_EVENT_VALUE_CHANGED, (void *)0);
-            lv_obj_add_event_cb(obj, event_handler_cb_main_addremove_matrix, LV_EVENT_ALL, 0);
+            lv_obj_add_event_cb(obj, action_product_action, LV_EVENT_CLICKED, (void *)0);
             lv_obj_add_flag(obj, LV_OBJ_FLAG_CHECKABLE);
             lv_obj_set_style_border_width(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
             lv_obj_set_style_radius(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
