@@ -607,7 +607,7 @@ std::vector<Product> ProductService::getExpiringProducts()
         "{\"method\":\"lessThanEqual\",\"attribute\":\"expiry\",\"values\":[\"" + std::string(tomorrow) + "\"]}";
 
     std::string queryNonFrozen =
-        "{\"method\":\"notEqual\",\"attribute\":\"frozen\",\"values\":[true]}";
+        "{\"method\":\"equal\",\"attribute\":\"frozen\",\"values\":[false]}";
 
     std::string queryFrozenExpiry =
         "{\"method\":\"lessThanEqual\",\"attribute\":\"expiry\",\"values\":[\"" + std::string(fourMonths) + "\"]}";

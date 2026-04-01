@@ -105,6 +105,7 @@ void WiFiManager::eventHandler(void *arg,
                      event->reason);
 
             wifi_connected = false;
+            sntp_synced = false; // Reset SNTP sync flag on disconnect
 
             // Small backoff before reconnect
             vTaskDelay(pdMS_TO_TICKS(1000));

@@ -540,7 +540,7 @@ void Application::fetchExpiringProducts()
     strftime(tomorrow_str, sizeof(tomorrow_str), "%Y-%m-%d", &today_tm); // "2026-03-10"
 
     // Build the text for the expired_lbl
-    std::string expiredProductsText;
+    std::string expiredProductsText = "";
     for (const auto &product : products)
     {
         std::string expiry_date = product.expiry.substr(0, 10); // Extract date part only
@@ -573,6 +573,7 @@ void Application::fetchExpiringProducts()
 
     // Use LVGLManager to update the label
     LVGLManager::updateExpiredProductsLabel(expiredProductsText);
+    LVGLManager::updateStatusLabel("Expiring products updated");
 }
 
 // Task to fetch products expiring today or tomorrow

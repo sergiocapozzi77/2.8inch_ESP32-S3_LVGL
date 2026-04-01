@@ -114,22 +114,30 @@ void ProductFetcher::persistTask(void *arg)
             product.quantity = item.quantity;
             product.barcode = item.barcode;
 
-            // if (product.category == "Meat & Fish")
-            // {
-            expiryDateSelector.show(product, 0);
-            //}
-            /*/ else
-             {
-                 if (productService.manageUpdateProduct(product))
-                 {
-                     ESP_LOGI(TAG, "Product saved: %s", product.name.c_str());
-                 }
-                 else
-                 {
-                     LVGLManager::showErrorSnackbar("Failed to save product: " + product.name);
-                     ESP_LOGW(TAG, "Failed to save product: %s", product.name.c_str());
-                 }
-             }*/
+            // Check if in remove mode
+            const auto mode = get_var_add_or_del();
+            if (mode == AddOrDelType_Del)
+            {
+                // Remove mode: skip expiry selector, directly remove product
+                ESP_LOGI(TAG, "Remove mode: deleting product %s directly", product.name.c_str());
+                if (productService.manageUpdateProduct(product))
+                {
+                    ESP_LOGI(TAG, "Product removed: %s", product.name.c_str());
+                }
+                else
+                {
+                    LVGLManager::showErrorSnackbar("Failed to remove product: " + product.name);
+                    ESP_LOGW(TAG, "Failed to remove product: %s", product.name.c_str());
+                }
+            }
+            else
+            {
+                // Add mode: show expiry selector
+                // if (product.category == "Meat & Fish")
+                // {
+                expiryDateSelector.show(product, 0);
+                // }
+            }
         }
     }
 }
