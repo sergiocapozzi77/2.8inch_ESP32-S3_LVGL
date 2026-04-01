@@ -498,6 +498,9 @@ void Application::run()
     wake_flag = false;
     power_state = PowerState::ACTIVE;
 
+    // ✅ Reset inactivity timer after wake
+    lv_disp_trig_activity(NULL);
+
     // Task to fetch products expiring today or tomorrow
     xTaskCreate(Application::fetchExpiringProductsAndUpdateCacheTask, "FetchExpiringProducts", 8192, this, 5, &fetchTaskHandle);
 
