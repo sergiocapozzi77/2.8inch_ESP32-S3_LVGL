@@ -26,7 +26,7 @@ ProductFetcher::ProductFetcher(
 esp_err_t ProductFetcher::start()
 {
     xTaskCreate(ProductFetcher::task, "product_fetch", 8192, this, 5, nullptr);
-    xTaskCreate(ProductFetcher::persistTask, "product_persist", 8192, this, 4, nullptr);
+    xTaskCreate(ProductFetcher::persistTask, "product_persist", 12192, this, 4, nullptr);
     return ESP_OK;
 }
 
@@ -163,6 +163,15 @@ std::string ProductFetcher::mapUkSupermarketCategory(cJSON *tagsArray, const std
                    [](unsigned char c)
                    { return std::tolower(c); });
 
+    // Category scores map
+    std::map<std::string, int> categoryScores;
+    std::vector<std::string> categoryOrder = {
+        "Baby", "Pet Supplies", "Wine, Beer & Spirit", "Produce", "Meat", "Seafood",
+        "Deli", "Dairy", "Bakery", "Frozen Foods", "Beverages", "Snacks",
+        "Breakfast & Cereal", "Soups & Canned Food", "Grains, Pasta & Sides",
+        "Cooking & Baking", "Condiments & Dressing", "Health & Personal Care",
+        "Household & Cleaning"};
+
     cJSON *tagItem = nullptr;
     cJSON_ArrayForEach(tagItem, tagsArray)
     {
@@ -175,13 +184,13 @@ std::string ProductFetcher::mapUkSupermarketCategory(cJSON *tagsArray, const std
         if (t.find("baby") != std::string::npos || t.find("infant") != std::string::npos ||
             t.find("formula") != std::string::npos || t.find("baby-foods") != std::string::npos ||
             productNameLow.find("baby") != std::string::npos)
-            return "Baby";
+            categoryScores["Baby"]++;
 
         // Pet Supplies
         if (t.find("pet") != std::string::npos || t.find("dog") != std::string::npos ||
             t.find("cat") != std::string::npos || t.find("pet-foods") != std::string::npos ||
             productNameLow.find("dog food") != std::string::npos || productNameLow.find("cat food") != std::string::npos)
-            return "Pet Supplies";
+            categoryScores["Pet Supplies"]++;
 
         // Wine, Beer & Spirit
         if (t.find("alcoholic") != std::string::npos || t.find("wine") != std::string::npos ||
@@ -189,14 +198,14 @@ std::string ProductFetcher::mapUkSupermarketCategory(cJSON *tagsArray, const std
             t.find("beers") != std::string::npos || t.find("spirit") != std::string::npos ||
             t.find("spirits") != std::string::npos || t.find("liquor") != std::string::npos ||
             t.find("alcohol") != std::string::npos || t.find("cider") != std::string::npos)
-            return "Wine, Beer & Spirit";
+            categoryScores["Wine, Beer & Spirit"]++;
 
         // Produce (Fruit & Veg)
         if (t.find("vegetable") != std::string::npos || t.find("veg") != std::string::npos ||
             t.find("vegetables") != std::string::npos || t.find("fruit") != std::string::npos ||
             t.find("fruits") != std::string::npos || t.find("produce") != std::string::npos ||
             t.find("fresh-vegetables") != std::string::npos || t.find("fresh-fruits") != std::string::npos)
-            return "Produce";
+            categoryScores["Produce"]++;
 
         // Meat
         if (t.find("meat") != std::string::npos || t.find("meats") != std::string::npos ||
@@ -207,7 +216,7 @@ std::string ProductFetcher::mapUkSupermarketCategory(cJSON *tagsArray, const std
             productNameLow.find("meat") != std::string::npos || productNameLow.find("chicken") != std::string::npos ||
             productNameLow.find("pork") != std::string::npos || productNameLow.find("lamb") != std::string::npos ||
             productNameLow.find("sausage") != std::string::npos || productNameLow.find("beef") != std::string::npos)
-            return "Meat";
+            categoryScores["Meat"]++;
 
         // Seafood
         if (t.find("fish") != std::string::npos || t.find("fishes") != std::string::npos ||
@@ -216,13 +225,13 @@ std::string ProductFetcher::mapUkSupermarketCategory(cJSON *tagsArray, const std
             t.find("shellfish") != std::string::npos || t.find("shrimp") != std::string::npos ||
             productNameLow.find("fish") != std::string::npos || productNameLow.find("salmon") != std::string::npos ||
             productNameLow.find("seafood") != std::string::npos)
-            return "Seafood";
+            categoryScores["Seafood"]++;
 
         // Deli
         if (t.find("deli") != std::string::npos || t.find("prepared") != std::string::npos ||
             t.find("ready-meal") != std::string::npos || t.find("charcuterie") != std::string::npos ||
             t.find("sliced-meats") != std::string::npos || t.find("sandwiches") != std::string::npos)
-            return "Deli";
+            categoryScores["Deli"]++;
 
         // Dairy (without eggs)
         if (t.find("dairy") != std::string::npos || t.find("milk") != std::string::npos ||
@@ -230,23 +239,18 @@ std::string ProductFetcher::mapUkSupermarketCategory(cJSON *tagsArray, const std
             t.find("yogurt") != std::string::npos || t.find("yogurts") != std::string::npos ||
             t.find("yoghurt") != std::string::npos || t.find("butter") != std::string::npos ||
             t.find("cream") != std::string::npos)
-        {
-            // Check if it's specifically eggs (move to Breakfast & Cereal)
-            if (t.find("egg") != std::string::npos || t.find("eggs") != std::string::npos)
-                return "Breakfast & Cereal";
-            return "Dairy";
-        }
+            categoryScores["Dairy"]++;
 
         // Bakery
         if (t.find("bread") != std::string::npos || t.find("breads") != std::string::npos ||
             t.find("bakery") != std::string::npos || t.find("pastry") != std::string::npos ||
             t.find("pastries") != std::string::npos || t.find("baked-goods") != std::string::npos ||
             t.find("cake") != std::string::npos || t.find("cakes") != std::string::npos)
-            return "Bakery";
+            categoryScores["Bakery"]++;
 
         // Frozen Foods
         if (t.find("frozen") != std::string::npos || t.find("frozen-foods") != std::string::npos)
-            return "Frozen Foods";
+            categoryScores["Frozen Foods"]++;
 
         // Beverages (non-alcoholic)
         if (t.find("beverage") != std::string::npos || t.find("beverages") != std::string::npos ||
@@ -255,7 +259,7 @@ std::string ProductFetcher::mapUkSupermarketCategory(cJSON *tagsArray, const std
             t.find("water") != std::string::npos || t.find("soda") != std::string::npos ||
             t.find("soft-drink") != std::string::npos || t.find("tea") != std::string::npos ||
             t.find("coffee") != std::string::npos)
-            return "Beverages";
+            categoryScores["Beverages"]++;
 
         // Snacks
         if (t.find("snack") != std::string::npos || t.find("snacks") != std::string::npos ||
@@ -263,7 +267,7 @@ std::string ProductFetcher::mapUkSupermarketCategory(cJSON *tagsArray, const std
             t.find("chocolate") != std::string::npos || t.find("chocolates") != std::string::npos ||
             t.find("sweets") != std::string::npos || t.find("candy") != std::string::npos ||
             t.find("biscuit") != std::string::npos || t.find("cookies") != std::string::npos)
-            return "Snacks";
+            categoryScores["Snacks"]++;
 
         // Breakfast & Cereal
         if (t.find("cereal") != std::string::npos || t.find("cereals") != std::string::npos ||
@@ -271,13 +275,13 @@ std::string ProductFetcher::mapUkSupermarketCategory(cJSON *tagsArray, const std
             t.find("porridge") != std::string::npos || t.find("muesli") != std::string::npos ||
             t.find("granola") != std::string::npos || t.find("egg") != std::string::npos ||
             t.find("eggs") != std::string::npos)
-            return "Breakfast & Cereal";
+            categoryScores["Breakfast & Cereal"]++;
 
         // Soups & Canned Food
         if (t.find("canned") != std::string::npos || t.find("tinned") != std::string::npos ||
             t.find("jarred") != std::string::npos || t.find("soup") != std::string::npos ||
             t.find("soups") != std::string::npos || t.find("canned-foods") != std::string::npos)
-            return "Soups & Canned Food";
+            categoryScores["Soups & Canned Food"]++;
 
         // Grains, Pasta & Sides
         if (t.find("pasta") != std::string::npos || t.find("pastas") != std::string::npos ||
@@ -285,7 +289,7 @@ std::string ProductFetcher::mapUkSupermarketCategory(cJSON *tagsArray, const std
             t.find("grain") != std::string::npos || t.find("noodle") != std::string::npos ||
             t.find("noodles") != std::string::npos || t.find("couscous") != std::string::npos ||
             t.find("quinoa") != std::string::npos)
-            return "Grains, Pasta & Sides";
+            categoryScores["Grains, Pasta & Sides"]++;
 
         // Cooking & Baking
         if (t.find("flour") != std::string::npos || t.find("sugar") != std::string::npos ||
@@ -294,7 +298,7 @@ std::string ProductFetcher::mapUkSupermarketCategory(cJSON *tagsArray, const std
             t.find("spices") != std::string::npos || t.find("seasoning") != std::string::npos ||
             t.find("herbs") != std::string::npos || t.find("vanilla") != std::string::npos ||
             t.find("yeast") != std::string::npos || t.find("baking-powder") != std::string::npos)
-            return "Cooking & Baking";
+            categoryScores["Cooking & Baking"]++;
 
         // Condiments & Dressing
         if (t.find("sauce") != std::string::npos || t.find("sauces") != std::string::npos ||
@@ -303,23 +307,37 @@ std::string ProductFetcher::mapUkSupermarketCategory(cJSON *tagsArray, const std
             t.find("dressing") != std::string::npos || t.find("dressings") != std::string::npos ||
             t.find("ketchup") != std::string::npos || t.find("mustard") != std::string::npos ||
             t.find("mayonnaise") != std::string::npos || t.find("vinegar") != std::string::npos)
-            return "Condiments & Dressing";
+            categoryScores["Condiments & Dressing"]++;
 
         // Health & Personal Care
         if (t.find("health") != std::string::npos || t.find("personal-care") != std::string::npos ||
             t.find("vitamin") != std::string::npos || t.find("vitamins") != std::string::npos ||
             t.find("supplement") != std::string::npos || t.find("toiletries") != std::string::npos ||
             t.find("hygiene") != std::string::npos || t.find("cosmetic") != std::string::npos)
-            return "Health & Personal Care";
+            categoryScores["Health & Personal Care"]++;
 
         // Household & Cleaning
         if (t.find("household") != std::string::npos || t.find("cleaning") != std::string::npos ||
             t.find("detergent") != std::string::npos || t.find("cleaner") != std::string::npos ||
             t.find("laundry") != std::string::npos || t.find("dishwashing") != std::string::npos)
-            return "Household & Cleaning";
+            categoryScores["Household & Cleaning"]++;
     }
 
-    return "Other";
+    // Find the category with the highest score
+    std::string bestCategory = "Other";
+    int maxScore = 0;
+
+    for (const auto &category : categoryOrder)
+    {
+        auto it = categoryScores.find(category);
+        if (it != categoryScores.end() && it->second > maxScore)
+        {
+            maxScore = it->second;
+            bestCategory = category;
+        }
+    }
+
+    return bestCategory;
 }
 
 int ProductFetcher::fetchProductInfoWithRetry(const std::string &barcode, ProductCacheItem &out, ProductCache *cache)

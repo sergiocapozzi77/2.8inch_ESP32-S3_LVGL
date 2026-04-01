@@ -436,6 +436,7 @@ bool ProductService::addProduct(Product &product)
     cJSON_AddStringToObject(data, "expiry", product.expiry.c_str());
     cJSON_AddStringToObject(data, "barcode", product.barcode.c_str());
     cJSON_AddStringToObject(data, "user", product.user.c_str());
+    cJSON_AddBoolToObject(data, "frozen", false);
 
     char *json = cJSON_PrintUnformatted(root);
     if (!json)
