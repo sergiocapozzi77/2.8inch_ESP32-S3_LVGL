@@ -44,7 +44,6 @@ private:
 
 public:
     // Managers / Services
-    WiFiManager wifi_manager;
     LVGLManager lvgl_manager;
     ProductCache product_cache;
 

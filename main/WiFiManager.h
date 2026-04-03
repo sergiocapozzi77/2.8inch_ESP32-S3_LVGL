@@ -2,29 +2,33 @@
 
 #include <string>
 #include "esp_event.h"
+#include "esp_sntp.h"
 
 class WiFiManager
 {
 public:
-    WiFiManager() = default;
+    WiFiManager(); // Initialize flags here
     ~WiFiManager() = default;
 
     void init(const std::string &ssid, const std::string &password);
-    static bool isConnected();
-    void waitForConnection();
+    bool isConnected();
+    bool isSntpSynced();
 
-    static bool isSntpSynced();
+    void startSNTP();
 
 private:
-    static volatile bool sntp_synced;
-    static void sntpSyncCallback(struct timeval *tv);
+    // This MUST be static to be used as a C callback
     static void eventHandler(void *arg,
                              esp_event_base_t event_base,
                              int32_t event_id,
                              void *event_data);
 
-    static void startSNTP();
+    // This MUST be static for the SNTP callback
+    static void sntpSyncCallback(struct timeval *tv);
 
-    static volatile bool wifi_connected;
-    static bool sntp_initialized;
+    // Use 'volatile' for variables changed in callbacks/ISRs
+    volatile bool wifi_connected;
+    volatile bool sntp_initialized;
 };
+
+extern WiFiManager wifi_manager; // Declare the global instance

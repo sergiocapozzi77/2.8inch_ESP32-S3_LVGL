@@ -377,7 +377,7 @@ int ProductFetcher::fetchProductInfo(const std::string &barcode, ProductCacheIte
     }
 #endif
 
-    while (!WiFiManager::isConnected())
+    while (!wifi_manager.isConnected())
     {
         ESP_LOGW(TAG, "Waiting for WiFi...");
         LVGLManager::updateStatusLabel("Waiting for WiFi...");

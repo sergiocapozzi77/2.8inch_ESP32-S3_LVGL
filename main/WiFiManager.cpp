@@ -12,10 +12,14 @@
 
 static const char *TAG = "WiFiManager";
 
-volatile bool WiFiManager::wifi_connected = false;
-bool WiFiManager::sntp_initialized = false;
-volatile bool WiFiManager::sntp_synced = false;
+WiFiManager wifi_manager; // Define the global instance
 
+WiFiManager::WiFiManager()
+    : wifi_connected(false),
+      sntp_initialized(false)
+{
+    // Constructor body can be empty
+}
 // ============================================================
 // Public API
 // ============================================================
@@ -86,53 +90,35 @@ void WiFiManager::eventHandler(void *arg,
                                int32_t event_id,
                                void *event_data)
 {
+    // 1. Cast the 'arg' back to a WiFiManager pointer
+    WiFiManager *self = static_cast<WiFiManager *>(arg);
+
     if (event_base == WIFI_EVENT)
     {
         switch (event_id)
         {
         case WIFI_EVENT_STA_START:
-            ESP_LOGI(TAG, "Connecting to WiFi...");
             esp_wifi_connect();
             break;
 
         case WIFI_EVENT_STA_DISCONNECTED:
-        {
-            wifi_event_sta_disconnected_t *event =
-                (wifi_event_sta_disconnected_t *)event_data;
+            // 2. Use 'self->' to access the member variable
+            self->wifi_connected = false;
 
-            ESP_LOGW(TAG,
-                     "Disconnected, reason: %d",
-                     event->reason);
-
-            wifi_connected = false;
-            sntp_synced = false; // Reset SNTP sync flag on disconnect
-
-            // Small backoff before reconnect
             vTaskDelay(pdMS_TO_TICKS(1000));
             esp_wifi_connect();
             break;
         }
-
-        default:
-            break;
-        }
     }
-    else if (event_base == IP_EVENT &&
-             event_id == IP_EVENT_STA_GOT_IP)
+    else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP)
     {
-        ip_event_got_ip_t *event =
-            (ip_event_got_ip_t *)event_data;
+        // 3. Use 'self->' here as well
+        self->wifi_connected = true;
 
-        ESP_LOGI(TAG,
-                 "Got IP: " IPSTR,
-                 IP2STR(&event->ip_info.ip));
-
-        wifi_connected = true;
-
-        if (!sntp_initialized)
+        if (!self->sntp_initialized)
         {
-            startSNTP();
-            sntp_initialized = true;
+            self->startSNTP();
+            self->sntp_initialized = true;
         }
     }
 }
@@ -141,29 +127,57 @@ void WiFiManager::eventHandler(void *arg,
 // SNTP
 // ============================================================
 
+// Update these methods in your WiFiManager.cpp
+
 void WiFiManager::startSNTP()
 {
+    // If already running, stop it to ensure a fresh socket/query cycle
+    if (esp_sntp_enabled())
+    {
+        esp_sntp_stop();
+    }
+
     ESP_LOGI(TAG, "Initializing SNTP...");
 
-    // UK timezone
     setenv("TZ", "GMT0BST,M3.5.0/1,M10.5.0", 1);
     tzset();
 
     esp_sntp_setoperatingmode(SNTP_OPMODE_POLL);
     esp_sntp_setservername(0, "pool.ntp.org");
+
+    // Set to IMMED so the clock jumps to the correct time immediately
+    // instead of slowly drifting (slewing) to it.
+    esp_sntp_set_sync_mode(SNTP_SYNC_MODE_IMMED);
     esp_sntp_set_time_sync_notification_cb(sntpSyncCallback);
     esp_sntp_init();
 
+    sntp_initialized = true;
     ESP_LOGI(TAG, "SNTP started");
+}
+
+bool WiFiManager::isSntpSynced()
+{
+    if (!sntp_initialized)
+        return false;
+
+    // Check 1: The IDF Sync Status bit
+    bool synced = (esp_sntp_get_sync_status() == SNTP_SYNC_STATUS_COMPLETED);
+
+    // Check 2: Sanity check the year (must be > 2024)
+    time_t now;
+    struct tm timeinfo;
+    time(&now);
+    localtime_r(&now, &timeinfo);
+
+    if (timeinfo.tm_year < (2025 - 1900))
+    {
+        return false;
+    }
+
+    return synced;
 }
 
 void WiFiManager::sntpSyncCallback(struct timeval *tv)
 {
     ESP_LOGI(TAG, "SNTP synced, time: %lld", (long long)tv->tv_sec);
-    sntp_synced = true;
-}
-
-bool WiFiManager::isSntpSynced()
-{
-    return sntp_synced;
 }

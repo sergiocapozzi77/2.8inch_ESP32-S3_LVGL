@@ -15,6 +15,7 @@
 #include "lwip/inet.h"      // ← added for WiFi keep-alive
 #include "lwip/ip4_addr.h"  // ← added for WiFi keep-alive
 #include <algorithm>        // For std::sort
+#include "WiFiManager.h"
 
 static const char *TAG = "APP";
 
@@ -183,7 +184,7 @@ static bool pingGateway()
 // No screen, no backlight, no barcode reader is touched here.
 // Reconnection uses esp_wifi_connect() directly — WiFiManager's event handler
 // already auto-reconnects on WIFI_EVENT_STA_DISCONNECTED, so we just nudge it.
-static void silentWifiPing(WiFiManager &wifi_manager)
+static void silentWifiPing()
 {
     ESP_LOGI(TAG, "[WiFi-KeepAlive] Silent ping cycle");
 
@@ -235,18 +236,12 @@ void Application::enterSleep()
     lv_obj_set_style_bg_opa(scr, LV_OPA_COVER, 0);
     lv_refr_now(NULL);
 
-    // Backlight off
     gpio_set_level(BACKLIGHT_GPIO, 0);
-
-    // LCD sleep
     ili9341_sleep_in();
     vTaskDelay(pdMS_TO_TICKS(LCD_SLEEP_DELAY_MS));
 
-    // Stop barcode reader
     if (barcode_reader)
         barcode_reader->off();
-
-    // ✅ Suspend any tasks that access flash before sleeping
     if (fetchTaskHandle)
         vTaskSuspend(fetchTaskHandle);
 
@@ -276,7 +271,7 @@ void Application::enterSleep()
         {
             // Timer wakeup: ping WiFi silently, peripherals stay off, go back to sleep
             ESP_LOGI(TAG, "[Sleep] Timer wakeup — pinging WiFi (peripherals stay OFF)");
-            silentWifiPing(wifi_manager);
+            silentWifiPing();
             continue;
         }
 
@@ -284,13 +279,10 @@ void Application::enterSleep()
         ESP_LOGI(TAG, "[Sleep] Non-timer wakeup (cause=%d) — exiting sleep loop", cause);
         break;
     }
-
-    // ✅ Resume tasks immediately after CPU resumes
     if (fetchTaskHandle)
         vTaskResume(fetchTaskHandle);
 
-    // Execution resumes here after wake
-    ESP_LOGI(TAG, "Woke from SLEEP");
+    ESP_LOGI(TAG, "Woke from SLEEP loop");
 }
 
 // Called from ISR — sets a flag, safe for ISR
@@ -339,7 +331,7 @@ void Application::wakeScreen()
     int elapsed_time_ms = (end_time - start_time) / 1000; // Convert microseconds to milliseconds
 
     // Display elapsed time using updateStatusLabel
-    LVGLManager::updateStatusLabel("Wake time: " + std::to_string(elapsed_time_ms) + " ms");
+    LVGLManager::updateStatusLabel("Hello!");
 
     ESP_LOGI(TAG, "Screen awake (ACTIVE)");
 
@@ -498,9 +490,6 @@ void Application::run()
     wake_flag = false;
     power_state = PowerState::ACTIVE;
 
-    // ✅ Reset inactivity timer after wake
-    lv_disp_trig_activity(NULL);
-
     // Task to fetch products expiring today or tomorrow
     xTaskCreate(Application::fetchExpiringProductsAndUpdateCacheTask, "FetchExpiringProducts", 8192, this, 5, &fetchTaskHandle);
 
@@ -510,6 +499,7 @@ void Application::run()
 void Application::fetchExpiringProducts()
 {
     ESP_LOGI(TAG, "Fetching expiring products from Appwrite...");
+
     LVGLManager::updateStatusLabel("Fetching expiring products...");
 
     // Fetch products expiring today or tomorrow
@@ -581,16 +571,27 @@ void Application::fetchExpiringProductsAndUpdateCacheTask(void *param)
 {
     Application *self = (Application *)param;
 
-    while (!self->wifi_manager.isConnected())
+    // Wait for WiFi with a hard timeout
+    int wifi_timeout = 20;
+    while (!wifi_manager.isConnected() && wifi_timeout-- > 0)
     {
-        vTaskDelay(pdMS_TO_TICKS(1000));
+        vTaskDelay(pdMS_TO_TICKS(500));
     }
 
-    while (!self->wifi_manager.isSntpSynced())
-        vTaskDelay(pdMS_TO_TICKS(500));
+    if (wifi_manager.isConnected())
+    {
+        // Trigger a fresh SNTP sync attempt if we just woke up
+        wifi_manager.startSNTP();
 
-    ESP_LOGI(TAG, "WiFi connected. Fetching expiring products...");
+        int sntp_timeout = 20;
+        while (!wifi_manager.isSntpSynced() && sntp_timeout-- > 0)
+        {
+            vTaskDelay(pdMS_TO_TICKS(500));
+        }
+    }
 
+    // Even if SNTP fails, we proceed so the UI doesn't stay "stuck"
+    // The logs will show the time was never updated.
     self->fetchExpiringProducts();
     self->updateProductsCache();
 

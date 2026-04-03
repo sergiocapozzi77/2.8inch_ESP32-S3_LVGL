@@ -72,7 +72,7 @@ void LVGLManager::updateStatusLabelAsync(void *arg)
 void LVGLManager::updateWiFiUI()
 {
     // This method should be called from the LVGL thread (main task)
-    if (WiFiManager::isConnected())
+    if (wifi_manager.isConnected())
     {
         lv_obj_clear_flag(objects.wifi_img, LV_OBJ_FLAG_HIDDEN);
     }
