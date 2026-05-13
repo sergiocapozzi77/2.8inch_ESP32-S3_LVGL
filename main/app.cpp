@@ -593,6 +593,7 @@ void Application::fetchExpiringProductsAndUpdateCacheTask(void *param)
     // Even if SNTP fails, we proceed so the UI doesn't stay "stuck"
     // The logs will show the time was never updated.
     self->fetchExpiringProducts();
+    vTaskDelay(pdMS_TO_TICKS(500));
     self->updateProductsCache();
 
     self->fetchTaskHandle = NULL;
