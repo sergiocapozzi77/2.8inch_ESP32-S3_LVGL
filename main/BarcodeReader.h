@@ -3,8 +3,6 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
 
-#define MAX_BARCODE_LEN 64
-
 class BarcodeReader
 {
 public:

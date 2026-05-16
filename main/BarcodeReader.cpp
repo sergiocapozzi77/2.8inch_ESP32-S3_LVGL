@@ -4,6 +4,7 @@
 #include "freertos/FreeRTOS.h"
 #include "driver/gpio.h"
 #include "lvgl.h"
+#include "ProductFetcher.h"
 
 static const char *TAG = "BarcodeReader";
 // UART Configuration

@@ -464,7 +464,18 @@ int ProductFetcher::fetchProductInfo(const std::string &barcode, ProductCacheIte
     {
         cJSON_Delete(root);
         LVGLManager::updateStatusLabel("Product not found");
-        return 0;
+
+        out.name = barcode;
+        out.category = "Other";
+        out.barcode = barcode;
+
+        if (cache)
+        {
+            cache->add(out);
+        }
+
+        cJSON_Delete(root);
+        return 1;
     }
 
     cJSON *product = cJSON_GetObjectItem(root, "product");

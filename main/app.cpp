@@ -335,6 +335,8 @@ void Application::wakeScreen()
 
     ESP_LOGI(TAG, "Screen awake (ACTIVE)");
 
+    LVGLManager::hideExpiredPanel();
+
     // Task to fetch products expiring today or tomorrow
     xTaskCreate(Application::fetchExpiringProductsAndUpdateCacheTask, "FetchExpiringProducts", 8192, this, 5, &fetchTaskHandle);
 }
@@ -617,6 +619,7 @@ void Application::updateProductsCache()
 
         cachedProduct.name = product.name;
         cachedProduct.category = product.category;
+        product_cache.add(cachedProduct);
         ESP_LOGI(TAG, "Updated product cache: Barcode=%s, Name=%s, Category=%s",
                  cachedProduct.barcode.c_str(), cachedProduct.name.c_str(), cachedProduct.category.c_str());
     }

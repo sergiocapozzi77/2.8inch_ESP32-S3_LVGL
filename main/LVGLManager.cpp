@@ -49,6 +49,12 @@ void LVGLManager::tick()
     lv_timer_handler();
 }
 
+void LVGLManager::hideExpiredPanel()
+{
+    lv_async_call([](void *arg)
+                  { lv_obj_add_flag(objects.expired_pnl, LV_OBJ_FLAG_HIDDEN); }, nullptr);
+}
+
 void LVGLManager::updateStatusLabel(const std::string &status)
 {
 
