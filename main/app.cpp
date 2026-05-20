@@ -278,9 +278,7 @@ void Application::enterSleep()
         // ── UART recovery (belt-and-braces — the pd_config above should
         //    keep UART alive, but on some S3 revisions the registers can
         //    still glitch).                                               ──
-        esp_rom_uart_set_as_console(UART_NUM_0);
-        uart_flush(UART_NUM_0);
-        uart_set_baudrate(UART_NUM_0, 115200);
+        uart_flush_input(UART_NUM_0);
 
         esp_sleep_wakeup_cause_t cause = esp_sleep_get_wakeup_cause();
 
@@ -358,16 +356,16 @@ void Application::wakeScreen()
     if (wifi_manager.isConnected())
     {
         ESP_LOGI(TAG, "Refreshing WiFi for clean TCP/IP state");
-        esp_wifi_disconnect(); // triggers WIFI_EVENT_STA_DISCONNECTED → auto-reconnect
-        int timeout = 60;
-        while (!wifi_manager.isConnected() && timeout-- > 0)
-        {
-            vTaskDelay(pdMS_TO_TICKS(500));
-        }
-        if (wifi_manager.isConnected())
-            ESP_LOGI(TAG, "WiFi refreshed OK");
-        else
-            ESP_LOGE(TAG, "WiFi refresh timed out — will retry in task");
+        //  esp_wifi_disconnect(); // triggers WIFI_EVENT_STA_DISCONNECTED → auto-reconnect
+        // int timeout = 60;
+        // while (!wifi_manager.isConnected() && timeout-- > 0)
+        // {
+        //     vTaskDelay(pdMS_TO_TICKS(500));
+        // }
+        // if (wifi_manager.isConnected())
+        //     ESP_LOGI(TAG, "WiFi refreshed OK");
+        // else
+        //     ESP_LOGE(TAG, "WiFi refresh timed out — will retry in task");
     }
 
     // Signal the persistent fetch task to re-fetch products
