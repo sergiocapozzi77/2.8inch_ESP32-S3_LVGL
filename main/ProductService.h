@@ -31,7 +31,7 @@ public:
     bool deleteProduct(Product &product);
 
     // Fetch products expiring today or tomorrow
-    std::vector<Product> getExpiringProducts();
+    std::vector<Product> getExpiringProducts(int &result);
 
     // Fetch barcodes from Appwrite table
     std::vector<Product> getBarcodes();

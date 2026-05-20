@@ -338,7 +338,8 @@ void Application::wakeScreen()
     LVGLManager::hideExpiredPanel();
 
     // Task to fetch products expiring today or tomorrow
-    xTaskCreate(Application::fetchExpiringProductsAndUpdateCacheTask, "FetchExpiringProducts", 8192, this, 5, &fetchTaskHandle);
+    expiring_products_fetched_ = false;
+    xTaskCreate(Application::fetchExpiringProductsAndUpdateCacheTask, "FetchExpiringProducts", 16192, this, 5, &fetchTaskHandle);
 }
 
 // ============================================================
@@ -439,8 +440,8 @@ void Application::mainLoop()
             wakeScreen();
         }
 
-        // Inactivity → SLEEP
-        if (power_state == PowerState::ACTIVE)
+        // Inactivity → SLEEP (only if expiring products have been fetched)
+        if (power_state == PowerState::ACTIVE && expiring_products_fetched_)
         {
             uint32_t inactive = lv_disp_get_inactive_time(NULL);
             if (inactive > SLEEP_TIMEOUT_MS)
@@ -493,6 +494,7 @@ void Application::run()
     power_state = PowerState::ACTIVE;
 
     // Task to fetch products expiring today or tomorrow
+    expiring_products_fetched_ = false;
     xTaskCreate(Application::fetchExpiringProductsAndUpdateCacheTask, "FetchExpiringProducts", 8192, this, 5, &fetchTaskHandle);
 
     mainLoop();
@@ -504,8 +506,15 @@ void Application::fetchExpiringProducts()
 
     LVGLManager::updateStatusLabel("Fetching expiring products...");
 
+    int result = 0;
     // Fetch products expiring today or tomorrow
-    auto products = productService.getExpiringProducts();
+    auto products = productService.getExpiringProducts(result);
+    if (result < 0)
+    {
+        ESP_LOGE(TAG, "Failed to fetch expiring products");
+        LVGLManager::updateStatusLabel("Failed to fetch expiring products");
+        return;
+    }
     if (products.empty())
     {
         ESP_LOGI(TAG, "No products expiring soon");
@@ -598,6 +607,7 @@ void Application::fetchExpiringProductsAndUpdateCacheTask(void *param)
     vTaskDelay(pdMS_TO_TICKS(500));
     self->updateProductsCache();
 
+    self->expiring_products_fetched_ = true;
     self->fetchTaskHandle = NULL;
     vTaskDelete(NULL);
 }

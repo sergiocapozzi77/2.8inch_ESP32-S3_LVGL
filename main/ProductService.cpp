@@ -83,6 +83,10 @@ std::string ProductService::httpGet(const std::string &url, int &status)
     if (err != ESP_OK)
     {
         ESP_LOGE(TAG, "HTTP open error: %s", esp_err_to_name(err));
+        {
+            std::string msg = std::string("HTTP err: ") + esp_err_to_name(err);
+            LVGLManager::updateStatusLabel(msg);
+        }
         status = -1;
         esp_http_client_cleanup(client);
         return {};
@@ -277,6 +281,7 @@ std::vector<Product> ProductService::getProducts(const std::vector<std::string> 
     if (status != 200)
     {
         ESP_LOGE(TAG, "GET failed: %d, Reason: %s", status, body.c_str());
+
         return result;
     }
 
@@ -579,8 +584,9 @@ std::string ProductService::generateId(int length)
     return id;
 }
 
-std::vector<Product> ProductService::getExpiringProducts()
+std::vector<Product> ProductService::getExpiringProducts(int &returned)
 {
+    returned = 0;
     std::vector<Product> result;
 
     // --- Build time ranges ---
@@ -634,14 +640,16 @@ std::vector<Product> ProductService::getExpiringProducts()
         if (queryResult1 != 0 || queryResult2 != 0)
         {
             ESP_LOGE(TAG, "Failed fetching expiring products (retry %d)", maxRetry);
+            returned = -1;
             vTaskDelay(2000 / portTICK_PERIOD_MS);
         }
         else
         {
+            returned = 0;
             break;
         }
 
-    } while (++maxRetry < 3);
+    } while (++maxRetry < 10);
 
     // --- Merge results ---
     if (queryResult1 == 0)

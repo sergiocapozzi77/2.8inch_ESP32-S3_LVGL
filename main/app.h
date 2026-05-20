@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atomic>
 #include "freertos/FreeRTOS.h" // MUST be first FreeRTOS header
 #include "freertos/task.h"
 #include "freertos/queue.h"
@@ -41,6 +42,7 @@ private:
     void updateProductsCache();
 
     TaskHandle_t fetchTaskHandle = NULL;
+    std::atomic<bool> expiring_products_fetched_ = false;
 
 public:
     // Managers / Services
