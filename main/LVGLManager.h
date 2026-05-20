@@ -29,6 +29,10 @@ public:
     static void updateExpiredProductsLabel(const std::string &expiredProductsText);
     static void hideExpiredPanel();
 
+    // Error panel — big modal panel for long error messages (like expired_pnl)
+    static void showErrorPanel(const std::string &message);
+    static void hideErrorPanel();
+
 private:
     static void expiryMatrixEventCallback(lv_event_t *e);
     static void (*expiry_selection_callback)(int, void *);

@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -i \"idf_ver\\\\|idf_version\\\\|esp_idf_version\\\\|idf_version_major\" C:\\\\\\\\Users\\\\\\\\sergi\\\\\\\\source\\\\\\\\repos\\\\\\\\2.8inch_ESP32-S3_LVGL\\\\\\\\build\\\\\\\\project_description.json)",
+      "Bash(grep -i \"blob\\\\|BLOB_IDX\\\\|nvs.*max\\\\|nvs.*limit\" C:\\\\\\\\Users\\\\\\\\sergi\\\\\\\\source\\\\\\\\repos\\\\\\\\2.8inch_ESP32-S3_LVGL\\\\\\\\sdkconfig)",
+      "Bash(python3 -c \"import json; d=json.load\\(open\\(r'C:\\\\Users\\\\sergi\\\\source\\\\repos\\\\2.8inch_ESP32-S3_LVGL\\\\build\\\\project_description.json'\\)\\); print\\(d.get\\('idf_version','not found'\\)\\)\")",
+      "Bash(grep -o '\"idf_version\":\"[^\"]*\"' C:\\\\\\\\Users\\\\\\\\sergi\\\\\\\\source\\\\\\\\repos\\\\\\\\2.8inch_ESP32-S3_LVGL\\\\\\\\build\\\\\\\\project_description.json)",
+      "Bash(grep *)"
+    ]
+  }
+}

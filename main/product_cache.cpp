@@ -257,8 +257,7 @@ esp_err_t ProductCache::saveCacheToNVS()
 
     size_t json_len = strlen(json_str);
 
-    // Ensure we don't exceed NVS blob limits
-    // NVS blob max is 4000 bytes, but we check against our cache limit
+    // Ensure we don't exceed our configured cache limit
     if (json_len > MAX_CACHE_SIZE_BYTES)
     {
         ESP_LOGE(TAG, "Cache too large (%d bytes > %d bytes limit), this shouldn't happen!",
@@ -269,13 +268,9 @@ esp_err_t ProductCache::saveCacheToNVS()
         return ESP_ERR_INVALID_SIZE;
     }
 
-    // Check NVS blob size limit (typically 4000 bytes)
-    if (json_len > 4000)
-    {
-        ESP_LOGW(TAG, "Serialized cache exceeds NVS blob limit (%d > 4000 bytes)", json_len);
-        // This should not happen if MAX_CACHE_SIZE_BYTES is set correctly
-        // But we'll try to write it anyway
-    }
+    // NVS on ESP-IDF v5.x supports large blobs via BLOB_IDX spanning multiple pages.
+    // The real limit is the partition size (256KB). The MAX_CACHE_SIZE_BYTES check above
+    // ensures we stay within the configured cache budget.
 
     err = nvs_set_blob(handle, "cache_data", json_str, json_len);
     if (err != ESP_OK)

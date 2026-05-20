@@ -1,6 +1,8 @@
 #include "ProductService.h"
 #include "esp_log.h"
+#include "esp_heap_caps.h"
 #include "esp_http_client.h"
+#include <cstring>
 #include <random>
 #include <sstream>
 #include <iomanip>
@@ -82,10 +84,22 @@ std::string ProductService::httpGet(const std::string &url, int &status)
     esp_err_t err = esp_http_client_open(client, 0);
     if (err != ESP_OK)
     {
-        ESP_LOGE(TAG, "HTTP open error: %s", esp_err_to_name(err));
+        int transport_errno = esp_http_client_get_errno(client);
+        int tls_error_code = 0, tls_flags = 0;
+        esp_http_client_get_and_clear_last_tls_error(client, &tls_error_code, &tls_flags);
+
+        ESP_LOGE(TAG, "HTTP open error: %s (errno=%d: %s, tls_err=0x%x, tls_flags=%d)",
+                 esp_err_to_name(err),
+                 transport_errno, transport_errno > 0 ? strerror(transport_errno) : "N/A",
+                 tls_error_code, tls_flags);
+
         {
-            std::string msg = std::string("HTTP err: ") + esp_err_to_name(err);
-            LVGLManager::updateStatusLabel(msg);
+            std::string msg = "HTTP err: " + std::string(esp_err_to_name(err));
+            if (transport_errno > 0)
+            {
+                msg += " (" + std::string(strerror(transport_errno)) + ")";
+            }
+            LVGLManager::showErrorPanel(msg);
         }
         status = -1;
         esp_http_client_cleanup(client);
@@ -141,7 +155,14 @@ std::string ProductService::httpPost(const std::string &url, const std::string &
     esp_err_t err = esp_http_client_open(client, body.size());
     if (err != ESP_OK)
     {
-        ESP_LOGE(TAG, "HTTP open error: %s", esp_err_to_name(err));
+        int transport_errno = esp_http_client_get_errno(client);
+        int tls_error_code = 0, tls_flags = 0;
+        esp_http_client_get_and_clear_last_tls_error(client, &tls_error_code, &tls_flags);
+
+        ESP_LOGE(TAG, "HTTP POST open error: %s (errno=%d: %s, tls_err=0x%x, tls_flags=%d)",
+                 esp_err_to_name(err),
+                 transport_errno, transport_errno > 0 ? strerror(transport_errno) : "N/A",
+                 tls_error_code, tls_flags);
         status = -1;
         esp_http_client_cleanup(client);
         return {};
@@ -193,7 +214,14 @@ std::string ProductService::httpPatch(const std::string &url, const std::string 
     esp_err_t err = esp_http_client_open(client, body.size());
     if (err != ESP_OK)
     {
-        ESP_LOGE(TAG, "HTTP open error: %s", esp_err_to_name(err));
+        int transport_errno = esp_http_client_get_errno(client);
+        int tls_error_code = 0, tls_flags = 0;
+        esp_http_client_get_and_clear_last_tls_error(client, &tls_error_code, &tls_flags);
+
+        ESP_LOGE(TAG, "HTTP PATCH open error: %s (errno=%d: %s, tls_err=0x%x, tls_flags=%d)",
+                 esp_err_to_name(err),
+                 transport_errno, transport_errno > 0 ? strerror(transport_errno) : "N/A",
+                 tls_error_code, tls_flags);
         status = -1;
         esp_http_client_cleanup(client);
         return {};
@@ -240,7 +268,14 @@ int ProductService::httpDelete(const std::string &url)
     esp_err_t err = esp_http_client_open(client, 0);
     if (err != ESP_OK)
     {
-        ESP_LOGE(TAG, "HTTP open error: %s", esp_err_to_name(err));
+        int transport_errno = esp_http_client_get_errno(client);
+        int tls_error_code = 0, tls_flags = 0;
+        esp_http_client_get_and_clear_last_tls_error(client, &tls_error_code, &tls_flags);
+
+        ESP_LOGE(TAG, "HTTP DELETE open error: %s (errno=%d: %s, tls_err=0x%x, tls_flags=%d)",
+                 esp_err_to_name(err),
+                 transport_errno, transport_errno > 0 ? strerror(transport_errno) : "N/A",
+                 tls_error_code, tls_flags);
         esp_http_client_cleanup(client);
         return -1;
     }
@@ -631,6 +666,11 @@ std::vector<Product> ProductService::getExpiringProducts(int &returned)
 
     do
     {
+        // Log heap state to diagnose memory fragmentation
+        ESP_LOGI(TAG, "Free heap: %lu  DMA heap: %lu",
+                 (unsigned long)esp_get_free_heap_size(),
+                 (unsigned long)heap_caps_get_free_size(MALLOC_CAP_DMA));
+
         // --- Fetch non-frozen ---
         nonFrozen = getProducts({queryNonFrozen, queryNonFrozenExpiry}, queryResult1);
 
@@ -641,7 +681,13 @@ std::vector<Product> ProductService::getExpiringProducts(int &returned)
         {
             ESP_LOGE(TAG, "Failed fetching expiring products (retry %d)", maxRetry);
             returned = -1;
-            vTaskDelay(2000 / portTICK_PERIOD_MS);
+
+            // Longer delay when DMA heap is fragmented — gives time for
+            // other tasks to free DMA-capable memory (e.g. WiFi buffers)
+            int dma_free = heap_caps_get_free_size(MALLOC_CAP_DMA);
+            int delay_ms = (dma_free < 32768) ? 7000 : 5000;
+            ESP_LOGW(TAG, "Retrying in %d ms (DMA free: %lu)", delay_ms, (unsigned long)dma_free);
+            vTaskDelay(pdMS_TO_TICKS(delay_ms));
         }
         else
         {
@@ -649,7 +695,7 @@ std::vector<Product> ProductService::getExpiringProducts(int &returned)
             break;
         }
 
-    } while (++maxRetry < 10);
+    } while (++maxRetry < 15);
 
     // --- Merge results ---
     if (queryResult1 == 0)

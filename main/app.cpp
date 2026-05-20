@@ -5,11 +5,14 @@
 #include "esp_log.h"
 #include "nvs_flash.h"
 #include "driver/gpio.h"
+#include "driver/uart.h"
+#include "esp_rom_uart.h"
 #include "esp_wifi.h"
 #include "ili9341.h"
 #include "sdkconfig.h"
 #include "esp_sleep.h"
 #include "esp_timer.h"
+#include "esp_heap_caps.h"
 #include "esp_ping.h"       // ← added for WiFi keep-alive
 #include "ping/ping_sock.h" // ← added for WiFi keep-alive
 #include "lwip/inet.h"      // ← added for WiFi keep-alive
@@ -242,8 +245,6 @@ void Application::enterSleep()
 
     if (barcode_reader)
         barcode_reader->off();
-    if (fetchTaskHandle)
-        vTaskSuspend(fetchTaskHandle);
 
     // ── WiFi keep-alive light-sleep loop ─────────────────────────────────────
     // Two wakeup sources compete on every sleep iteration:
@@ -253,8 +254,17 @@ void Application::enterSleep()
     // ─────────────────────────────────────────────────────────────────────────
     ESP_ERROR_CHECK(esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_ALL));
 
+    // ── Keep RTC_PERIPH powered during light sleep so the UART
+    //    maintains its register state (baud, pin mux, config, …).
+    //    Without this, every wake requires a full UART re-init which
+    //    is unreliable on ESP32-S3.                                       ──
+    esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_PERIPH, ESP_PD_OPTION_ON);
+
     while (true)
     {
+        // ── UART: ensure all pending output is sent before CPU stops ─────
+        uart_wait_tx_done(UART_NUM_0, pdMS_TO_TICKS(50));
+
         // Arm both wakeup sources before every sleep iteration
         ESP_ERROR_CHECK(esp_sleep_enable_timer_wakeup(WIFI_PING_INTERVAL_US));
         ESP_ERROR_CHECK(esp_sleep_enable_ext1_wakeup(1ULL << WAKE_GPIO, ESP_EXT1_WAKEUP_ANY_LOW)); // wake on low
@@ -264,6 +274,13 @@ void Application::enterSleep()
 
         // Enter light sleep; CPU stops here until wake
         esp_light_sleep_start();
+
+        // ── UART recovery (belt-and-braces — the pd_config above should
+        //    keep UART alive, but on some S3 revisions the registers can
+        //    still glitch).                                               ──
+        esp_rom_uart_set_as_console(UART_NUM_0);
+        uart_flush(UART_NUM_0);
+        uart_set_baudrate(UART_NUM_0, 115200);
 
         esp_sleep_wakeup_cause_t cause = esp_sleep_get_wakeup_cause();
 
@@ -279,8 +296,6 @@ void Application::enterSleep()
         ESP_LOGI(TAG, "[Sleep] Non-timer wakeup (cause=%d) — exiting sleep loop", cause);
         break;
     }
-    if (fetchTaskHandle)
-        vTaskResume(fetchTaskHandle);
 
     ESP_LOGI(TAG, "Woke from SLEEP loop");
 }
@@ -337,9 +352,31 @@ void Application::wakeScreen()
 
     LVGLManager::hideExpiredPanel();
 
-    // Task to fetch products expiring today or tomorrow
-    expiring_products_fetched_ = false;
-    xTaskCreate(Application::fetchExpiringProductsAndUpdateCacheTask, "FetchExpiringProducts", 16192, this, 5, &fetchTaskHandle);
+    // ── WiFi: after light sleep the TCP/IP stack may be stale even
+    //    though WiFi association is maintained. Force a clean reconnect
+    //    so HTTP/TLS connections get a fresh TCP state.               ──
+    if (wifi_manager.isConnected())
+    {
+        ESP_LOGI(TAG, "Refreshing WiFi for clean TCP/IP state");
+        esp_wifi_disconnect(); // triggers WIFI_EVENT_STA_DISCONNECTED → auto-reconnect
+        int timeout = 60;
+        while (!wifi_manager.isConnected() && timeout-- > 0)
+        {
+            vTaskDelay(pdMS_TO_TICKS(500));
+        }
+        if (wifi_manager.isConnected())
+            ESP_LOGI(TAG, "WiFi refreshed OK");
+        else
+            ESP_LOGE(TAG, "WiFi refresh timed out — will retry in task");
+    }
+
+    // Signal the persistent fetch task to re-fetch products
+    // Only trigger if previous fetch completed (avoids stacking notifications)
+    if (fetchTaskHandle != NULL && expiring_products_fetched_)
+    {
+        expiring_products_fetched_ = false;
+        xTaskNotifyGive(fetchTaskHandle);
+    }
 }
 
 // ============================================================
@@ -493,9 +530,13 @@ void Application::run()
     wake_flag = false;
     power_state = PowerState::ACTIVE;
 
-    // Task to fetch products expiring today or tomorrow
+    // Persistent fetch task — loops forever, wakes on notification
+    // Using a larger stack since mbedTLS/TLS needs significant heap for SSL context
     expiring_products_fetched_ = false;
-    xTaskCreate(Application::fetchExpiringProductsAndUpdateCacheTask, "FetchExpiringProducts", 8192, this, 5, &fetchTaskHandle);
+    xTaskCreate(Application::fetchExpiringProductsAndUpdateCacheTask, "FetchExpiringProducts", 10192, this, 5, &fetchTaskHandle);
+    // Trigger the first fetch immediately
+    if (fetchTaskHandle != NULL)
+        xTaskNotifyGive(fetchTaskHandle);
 
     mainLoop();
 }
@@ -511,8 +552,16 @@ void Application::fetchExpiringProducts()
     auto products = productService.getExpiringProducts(result);
     if (result < 0)
     {
-        ESP_LOGE(TAG, "Failed to fetch expiring products");
+        char buf[128];
+        snprintf(buf, sizeof(buf),
+                 "Failed to fetch expiring products\n\n"
+                 "Free heap: %lu bytes\nDMA heap: %lu bytes\n\n"
+                 "The device may need a restart if this persists.",
+                 (unsigned long)esp_get_free_heap_size(),
+                 (unsigned long)heap_caps_get_free_size(MALLOC_CAP_DMA));
+        ESP_LOGE(TAG, "%s", buf);
         LVGLManager::updateStatusLabel("Failed to fetch expiring products");
+        LVGLManager::showErrorPanel(buf);
         return;
     }
     if (products.empty())
@@ -577,39 +626,48 @@ void Application::fetchExpiringProducts()
     LVGLManager::updateStatusLabel("Expiring products updated");
 }
 
-// Task to fetch products expiring today or tomorrow
+// Persistent task — loops forever, triggered by notification from wakeScreen()
 void Application::fetchExpiringProductsAndUpdateCacheTask(void *param)
 {
     Application *self = (Application *)param;
 
-    // Wait for WiFi with a hard timeout
-    int wifi_timeout = 20;
-    while (!wifi_manager.isConnected() && wifi_timeout-- > 0)
+    while (true)
     {
-        vTaskDelay(pdMS_TO_TICKS(500));
-    }
+        // Wait for signal from wakeScreen() or the initial trigger from run()
+        ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
 
-    if (wifi_manager.isConnected())
-    {
-        // Trigger a fresh SNTP sync attempt if we just woke up
-        wifi_manager.startSNTP();
-
-        int sntp_timeout = 20;
-        while (!wifi_manager.isSntpSynced() && sntp_timeout-- > 0)
+        // Wait for WiFi with a hard timeout
+        int wifi_timeout = 20;
+        while (!wifi_manager.isConnected() && wifi_timeout-- > 0)
         {
             vTaskDelay(pdMS_TO_TICKS(500));
         }
+
+        // After light sleep, the lwIP TCP/IP thread needs time to
+        // process internal timers and recover its state before any
+        // connect() call.  Otherwise lwIP may abort the socket with
+        // ECONNABORTED ("Software caused connection abort").
+        vTaskDelay(pdMS_TO_TICKS(1500));
+
+        if (wifi_manager.isConnected())
+        {
+            // Trigger a fresh SNTP sync attempt if we just woke up
+            wifi_manager.startSNTP();
+
+            int sntp_timeout = 20;
+            while (!wifi_manager.isSntpSynced() && sntp_timeout-- > 0)
+            {
+                vTaskDelay(pdMS_TO_TICKS(500));
+            }
+        }
+
+        // Even if SNTP fails, we proceed so the UI doesn't stay "stuck"
+        self->fetchExpiringProducts();
+        vTaskDelay(pdMS_TO_TICKS(500));
+        self->updateProductsCache();
+
+        self->expiring_products_fetched_ = true;
     }
-
-    // Even if SNTP fails, we proceed so the UI doesn't stay "stuck"
-    // The logs will show the time was never updated.
-    self->fetchExpiringProducts();
-    vTaskDelay(pdMS_TO_TICKS(500));
-    self->updateProductsCache();
-
-    self->expiring_products_fetched_ = true;
-    self->fetchTaskHandle = NULL;
-    vTaskDelete(NULL);
 }
 
 void Application::updateProductsCache()

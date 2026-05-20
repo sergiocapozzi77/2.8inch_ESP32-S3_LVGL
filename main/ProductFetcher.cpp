@@ -403,7 +403,7 @@ int ProductFetcher::fetchProductInfo(const std::string &barcode, ProductCacheIte
     if (!client)
     {
         ESP_LOGE(TAG, "Failed to init HTTP client");
-        LVGLManager::updateStatusLabel("Failed to init HTTP client: " + std::to_string(esp_get_free_heap_size()));
+        //  LVGLManager::updateStatusLabel("Failed to init HTTP client: " + std::to_string(esp_get_free_heap_size()));
         return -1;
     }
 
@@ -422,7 +422,7 @@ int ProductFetcher::fetchProductInfo(const std::string &barcode, ProductCacheIte
     if (status_code != 200)
     {
         ESP_LOGE(TAG, "HTTP error: %d", status_code);
-        LVGLManager::updateStatusLabel("Server returned error: " + std::to_string(status_code));
+        //  LVGLManager::updateStatusLabel("Server returned error: " + std::to_string(status_code));
         esp_http_client_cleanup(client);
         return -1;
     }
@@ -462,19 +462,19 @@ int ProductFetcher::fetchProductInfo(const std::string &barcode, ProductCacheIte
     cJSON *status = cJSON_GetObjectItem(root, "status");
     if (!cJSON_IsNumber(status) || (status->valueint != 1 && status->valueint != 200))
     {
-        cJSON_Delete(root);
         LVGLManager::updateStatusLabel("Product not found");
 
         out.name = barcode;
         out.category = "Other";
         out.barcode = barcode;
 
+        cJSON_Delete(root);
+
         if (cache)
         {
             cache->add(out);
         }
 
-        cJSON_Delete(root);
         return 1;
     }
 

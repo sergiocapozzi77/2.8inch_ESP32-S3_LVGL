@@ -6,6 +6,7 @@
 #include "lv_port_disp.h"
 #include "lv_port_indev.h"
 #include "ui.h"
+#include "ui/fonts.h"
 #include "esp_log.h"
 #include "WiFiManager.h"
 
@@ -53,6 +54,86 @@ void LVGLManager::hideExpiredPanel()
 {
     lv_async_call([](void *arg)
                   { lv_obj_add_flag(objects.expired_pnl, LV_OBJ_FLAG_HIDDEN); }, nullptr);
+}
+
+// ── Error panel (lazily created, survives UI regeneration) ────────────
+static lv_obj_t *error_panel = nullptr;
+static lv_obj_t *error_label = nullptr;
+
+static void error_close_btn_cb(lv_event_t *e)
+{
+    lv_obj_add_flag(error_panel, LV_OBJ_FLAG_HIDDEN);
+}
+
+void LVGLManager::showErrorPanel(const std::string &message)
+{
+    lv_async_call([](void *arg)
+    {
+        auto *msg = static_cast<std::string *>(arg);
+
+        if (!error_panel)
+        {
+            lv_obj_t *parent = lv_scr_act();
+
+            // Main panel
+            error_panel = lv_obj_create(parent);
+            lv_obj_set_pos(error_panel, 5, 26);
+            lv_obj_set_size(error_panel, 310, 207);
+            lv_obj_clear_flag(error_panel, LV_OBJ_FLAG_SCROLLABLE);
+            lv_obj_set_scroll_dir(error_panel, LV_DIR_VER);
+            lv_obj_set_style_border_color(error_panel, lv_color_hex(0xffff4500), LV_PART_MAIN | LV_STATE_DEFAULT);
+            lv_obj_set_style_border_width(error_panel, 2, LV_PART_MAIN | LV_STATE_DEFAULT);
+            lv_obj_set_style_pad_left(error_panel, 5, LV_PART_MAIN | LV_STATE_DEFAULT);
+            lv_obj_set_style_pad_right(error_panel, 5, LV_PART_MAIN | LV_STATE_DEFAULT);
+
+            // Title
+            lv_obj_t *title = lv_label_create(error_panel);
+            lv_obj_set_pos(title, 1, -4);
+            lv_obj_set_size(title, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+            lv_label_set_text(title, "Error");
+            lv_obj_set_style_text_color(title, lv_color_hex(0xffff4500), LV_PART_MAIN | LV_STATE_DEFAULT);
+
+            // Close button
+            lv_obj_t *close_btn = lv_btn_create(error_panel);
+            lv_obj_set_pos(close_btn, 252, -10);
+            lv_obj_set_size(close_btn, 46, 39);
+            lv_obj_add_event_cb(close_btn, error_close_btn_cb, LV_EVENT_CLICKED, nullptr);
+            lv_obj_t *close_lbl = lv_label_create(close_btn);
+            lv_obj_set_pos(close_lbl, 0, 0);
+            lv_obj_set_size(close_lbl, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+            lv_obj_set_style_align(close_lbl, LV_ALIGN_CENTER, LV_PART_MAIN | LV_STATE_DEFAULT);
+            lv_label_set_text(close_lbl, "x");
+
+            // Scrollable text container
+            lv_obj_t *text_cont = lv_obj_create(error_panel);
+            lv_obj_set_pos(text_cont, -2, 29);
+            lv_obj_set_size(text_cont, 300, 152);
+            lv_obj_set_style_pad_all(text_cont, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+            lv_obj_set_style_bg_opa(text_cont, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+            lv_obj_set_style_border_width(text_cont, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+            lv_obj_set_style_radius(text_cont, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+
+            // Error label inside scrollable container
+            error_label = lv_label_create(text_cont);
+            lv_obj_set_pos(error_label, 0, 0);
+            lv_obj_set_size(error_label, LV_PCT(100), LV_SIZE_CONTENT);
+            lv_obj_set_style_text_font(error_label, &ui_font_ext_montserrat_14, LV_PART_MAIN | LV_STATE_DEFAULT);
+        }
+
+        lv_label_set_text(error_label, msg->c_str());
+        lv_obj_clear_flag(error_panel, LV_OBJ_FLAG_HIDDEN);
+
+        delete msg;
+    }, new std::string(message));
+}
+
+void LVGLManager::hideErrorPanel()
+{
+    lv_async_call([](void *)
+    {
+        if (error_panel)
+            lv_obj_add_flag(error_panel, LV_OBJ_FLAG_HIDDEN);
+    }, nullptr);
 }
 
 void LVGLManager::updateStatusLabel(const std::string &status)
